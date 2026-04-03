@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# If this is ran from a Python virtual environment,
+# it should be activated
+#
+
+# Exit immediately if a command fails
+set -e
+
+# 1. Pull in the environment
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-authsystem-setenv"
+
+
+usage()
+{
+  echo "Usage: ticketweb-authsystem-prunesessions"
+  exit 2
+}
+
+
+
+
+python -c "from ticketweb_authsystem_server.back_end import sessions; sessions.prune_old_sessions()"
+
+
+

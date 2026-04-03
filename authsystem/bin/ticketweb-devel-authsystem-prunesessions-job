@@ -1,0 +1,20 @@
+#!/bin/bash
+
+
+
+# Exit immediately if a command fails
+set -e
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-authsystem-setenv"
+
+
+systemctl --user start "ticketweb-authsystem-prunesessions@$BUILD_ID.timer"
+
+
+
+journalctl --user -fu "ticketweb-authsystem-prunesessions@$BUILD_ID.service"
+
+systemctl --user stop  "ticketweb-authsystem-prunesessions@$BUILD_ID.timer"
+
+
+

@@ -1,0 +1,36 @@
+{
+    // This is a skeleton config file for the authsystem server. The install script will copy the file to $CONFIG_DIR/ticketweb/authsystem/config.json5 and
+    // the file will then have to be edited to reflect the actual configuration.
+
+    // The "db_conn_string_exec" field is a shell command that will be executed to get the database connection string. This is used to avoid hardcoding sensitive information,
+    // such as passwords, in the config file.
+    // For example, the command could be something like "echo dbname=ticketweb-development | tr -d '\n'" to get a connection string for a local development database.
+    "db_conn_string_exec": "echo dbname=ticketweb-development | tr -d '\\n'",
+    
+    // The "session_length_mins" field specifies the length of time (in minutes) that a session should be valid for before expiring. 
+    // A standard session length is 10080 minutes, which is equivalent to 7 days.
+    "session_length_mins": 10080,
+
+    // The "bind" field specifies the address and port that the server should bind to. The format is "address:port".
+    // For example, ":8001" means that the server will listen on all available network interfaces on port 8001.
+    "bind": ":8001",
+
+    // The "login_portals" field contains configuration for both a microsoft azure portal and a ticketweb development portal,
+    // which is a mock portal useful for development.
+    // The auth server can accept tokens from either server,
+    // but when in a production deployment, only the microsoft portal configuration should be used, 
+    // and the ticketweb development portal configuration should be removed or commented out.
+    // or commented out.
+    // 
+    "login_portals": {
+       "microsoft": {
+           "client_id": "19f2994b-849b-4717-8410-af9f41000e0a",
+           "tenant_id": "d61ecb3b-38b1-42d5-82c4-efb2838b925c"
+       },
+       "ticketweb": {
+               // The "signing_key_url" field specifies the URL where the server can retrieve the public key 
+               // used to verify the signatures of tokens issued by the ticketweb development portal.
+               "signing_key_url": "http://127.0.0.1:8004/pubkey"
+       }
+    }
+}

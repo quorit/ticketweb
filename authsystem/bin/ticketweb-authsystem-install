@@ -1,0 +1,299 @@
+#!/bin/bash
+
+echo "Starting TicketWeb Auth System installation..."
+echo "If you are running this from a python virtual environment, ensure it is activated before running this script."
+
+config_root=unset
+
+# Exit immediately if a command fails
+set -e
+
+
+
+# 1. Pull in the environment
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-authsystem-setenv"
+
+
+# ==============================================================================
+# If in devel mode, verify Node.js, npm, and nvm requirements
+# ==============================================================================
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode detected. Verifying Node.js, npm, and nvm environment..."
+    echo "Verifying Node.js environment..."
+
+    # 1. Check that node and npm exist globally or locally
+    if ! command -v node >/dev/null 2>&1; then
+        echo "Error: 'node' command not found. Node.js is required for this installation." >&2
+        exit 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "Error: 'npm' command not found. npm is required for this installation." >&2
+        exit 1
+    fi
+
+    echo "Found Node.js: $(node -v)"
+    echo "Found npm: $(npm -v)"
+
+    #   Strict nvm check
+    echo "Verifying nvm environment..."
+    
+    # Because this is a non-interactive bash script, the 'nvm' shell function 
+    # itself won't be loaded into memory. The most bulletproof way to check 
+    # if nvm is driving the environment is to check the path of the active node binary.
+    NODE_BIN_PATH=$(which node)
+    
+    if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
+        echo "Error: Development installation requires Node.js to be managed by nvm." >&2
+        echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
+        echo "Please ensure nvm is installed, loaded, and active in this terminal." >&2
+        exit 1
+    fi
+    
+    echo "nvm environment verified ($NODE_BIN_PATH)."
+else
+    echo "Production mode detected. Skipping Node.js, npm, and nvm verification."
+fi
+
+
+# ==============================================================================
+
+
+
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode: Configurations will be set up in $CONFIG_DIR."
+else
+    echo "Production mode: Configurations will be set up in $CONFIG_DIR with appropriate permissions."
+
+fi
+
+
+
+
+
+
+if [ "$DEVEL_MODE" = "false" ]; then
+    echo "Production mode: Will attempt to create system user 'ticketweb_authsystem' if it does not exist."
+    # Check if the user exists silently
+    if ! id "ticketweb_authsystem" &>/dev/null; then
+        echo "Creating system user 'ticketweb_authsystem'..."
+        sudo useradd -r -s /sbin/nologin ticketweb_authsystem
+    else
+        echo "System user 'ticketweb_authsystem' already exists, skipping."
+    fi
+else
+    echo "Development mode: Skipping system user creation."
+fi
+
+
+# Ensure the core directories exist
+mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$LIBEXEC_DIR" "$SYSTEMD_OS_DIR"
+
+if [ "$DEVEL_MODE" = "false" ]; then
+    mkdir -p "$SYSTEMD_STAGING_DIR"
+fi
+
+
+mkdir --parents --mode=770 "$CONFIG_DIR/rsa"
+
+
+
+
+if [ "$DEVEL_MODE" = "false" ]; then
+   echo "Production mode: Securing RSA directory and logging directory..."
+   chown ticketweb_authsystem:ticketweb_authsystem "$CONFIG_DIR/rsa" "$DATA_DIR" "$LOG_DIR"
+   chmod 770 "$CONFIG_DIR/rsa" "$DATA_DIR" "$LOG_DIR"
+fi
+
+
+if [[ ! -e "$CONFIG_DIR/applications.json" ]]; then
+   echo '{ "application_set": [] }' > "$CONFIG_DIR/applications.json"
+else
+   >&2 echo "Did not create 'applications.json' because file already exists."
+fi
+
+
+# Ask the active venv's Python for the exact file path of the skeleton config file
+config_file=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('config.json5'))")
+
+# Copy the skeleton config file to the target location, but only if it doesn't already exist there to avoid overwriting any existing configuration.
+if [ ! -e "$CONFIG_DIR/config.json5" ]; then
+   cp "$config_file" "$CONFIG_DIR/config.json5"
+else
+    echo "Did not copy 'config.json5' because file already exists at $CONFIG_DIR/config.json5."
+fi
+
+
+# We want to copy out the systemd unit files. We will copy them over even if they already exist, because they are small and we want to ensure the latest versions are in place. 
+# The user can always customize them after the fact if needed.
+# In the case of development mode, the files are copied to the user's systemd directory, which is ~/.config/systemd/user, 
+# so that the user can manage the services using systemctl --user.
+# In the case of production mode, the files are copied to a staging directory, which is /usr/lib/systemd/system, 
+# and then symbolic links are created in /etc/systemd/system that point to the staging directory,
+# so that the services can be managed using systemctl at the system level.
+
+# Since files in the staging directory have to be linked to from the systemd system path,
+# and the link names won't have the $BUILD_ID in them, 
+# we can't use a staging directory that is unique to each build. 
+# We are accepting that this will cause overwriting of unit files that
+# have the same name accross different builds, but in the case of a version difference,
+# the sysadmin can make custom unit files in /etc/systemd/system that 
+# don't link to the new ones in the staging directory.
+# 
+
+unit_file_source=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('systemd-unit-files'))")
+
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode: Copying systemd unit files to $SYSTEMD_OS_DIR for user-level management..."
+    cp -r "$unit_file_source/"* "$SYSTEMD_OS_DIR/"
+else
+    echo "Production mode: Copying systemd unit files to $SYSTEMD_STAGING_DIR for system-level management..."
+    # "Override directory for user-level management is not copied."
+    cp "$unit_file_source/"*.service "$SYSTEMD_STAGING_DIR/"
+    cp "$unit_file_source/"*.timer "$SYSTEMD_STAGING_DIR/"
+
+    echo "Creating symbolic links for systemd unit files in $SYSTEMD_STAGING_DIR to point to $SYSTEMD_OS_DIR..."
+    ln -sf "$SYSTEMD_STAGING_DIR/"*.service "$SYSTEMD_OS_DIR/"
+    ln -sf "$SYSTEMD_STAGING_DIR/"*.timer "$SYSTEMD_OS_DIR/"
+
+fi
+
+
+
+
+
+# ==============================================================================
+# Create Wrapper Scripts in $LIBEXEC_DIR (Production & Development Modes)
+# ==============================================================================
+
+
+
+echo "Creating server wrapper scripts in $LIBEXEC_DIR..."
+
+# Ensure the targeted subdirectory exists
+mkdir --parents "$LIBEXEC_DIR"
+
+# Define the wrappers to create. 
+# Format is "Wrapper_Name:Underlying_Python_App"
+executables=(
+    "ticketweb-authsystem-server:ticketweb-authsystem-server"
+    "ticketweb-authsystem-prunesessions:ticketweb-authsystem-prunesessions"
+)
+
+for exe_pair in "${executables[@]}"; do
+    wrapper_name="${exe_pair%%:*}"
+    python_app="${exe_pair##*:}"
+    wrapper_path="$LIBEXEC_DIR/$wrapper_name"
+    
+    if [ -n "$VIRTUAL_ENV" ]; then
+        echo "  -> Writing $wrapper_name (with venv activation)..."
+        cat << EOF > "$wrapper_path"
+#!/bin/bash
+# Auto-generated wrapper for $wrapper_name
+
+# Activate the virtual environment
+source "$VIRTUAL_ENV/bin/activate"
+
+# Replace shell with the actual Python process using an absolute path
+exec "$VIRTUAL_ENV/bin/$python_app" "\$@"
+EOF
+    else
+        echo "  -> Writing $wrapper_name (system-wide context)..."
+        # For system-wide, use 'which' or assume it's in the standard /usr/bin/
+        cat << EOF > "$wrapper_path"
+#!/bin/bash
+# Auto-generated wrapper for $wrapper_name
+
+# Replace shell with the actual Python process using absolute path
+exec "/usr/bin/$python_app" "\$@"
+EOF
+    fi
+
+    # Make the wrapper executable
+    chmod 755 "$wrapper_path"
+    
+    # In production mode (running as root), secure ownership
+    if [ "$DEVEL_MODE" = "false" ]; then
+        chown root:root "$wrapper_path"
+    fi
+done
+##### End of wrapper script creation loop #####
+
+
+
+# ==============================================================================
+# Provision Frontend Module (Development Only)
+# ==============================================================================
+frontend_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('frontend_module'))")
+echo "Front end module path located at: $frontend_module_path"
+
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode detected. Provisioning frontend development dependencies..."
+    (
+        cd "$frontend_module_path" || exit 1
+        
+        echo "Running npm install..."
+        npm install
+        
+        echo "Running npm link..."
+        npm link
+    )
+else
+    echo "Standard production install detected. Skipping frontend dependency provisioning."
+    echo "(No frontend assets are built with this package, even when building the wheel."
+    echo "The front end assets included in the package serve only as a library for use by modules"
+    echo "outside of this package. It is their responsiblity to build them.)"
+fi
+# ==============================================================================
+
+
+
+echo "Installation complete!"
+
+echo "Now you need to do the following:"
+
+echo "1. You will need to have database available and deploy the schema using the 'ticketweb-authsystem-create-db-schema' script,"
+echo "   You probably want to make a dedicated database for your deployment."
+echo "   The db in question should correspond with your build id. "
+echo "   If your BUILD_ID is 'production', then you might want to name the db 'ticketweb_production' or something like that," 
+echo "   to make it clear that this db is associated with software items using the /opt/ticketweb_production as their build root," 
+echo "   For example, you can run 'sudo -u postgres createdb ticketweb_production' to create a new database,"
+echo "   and then run 'ticketweb-authsystem-create-db-schema ticketweb_production' to deploy the schema to that database."
+echo "   We need to distinguish between different databases if we have multiple deployments of the ticketweb system,"
+echo "   and using the build ID as part of the db name is a convenient way to do that."
+echo "   Note that, in theory, the db can be on a remote server, in which case you will want to create the db and"
+echo "   run the schema creation script on the remote server."
+echo "   You can extract the schema using the 'ticketweb-export-session-schema' script, which will output the .sql file."
+echo "   as well as copy over the the crtion script itself, to the remote server, so"
+echo "   that you can then run the creation script on the remote server to deploy the schema there."
+echo "2. You will have to edit $CONFIG_DIR/config.json5 and make adjustments."
+echo "   Among those adjustments, you will need to set the database connection string to point to the database you set up in step 1."
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "3. Since you are in development mode,"
+    echo "   you can run 'systemctl --user daemon-reload' to make systemd aware of the new unit files." 
+    echo "   you can run the prune sessions timer as follows:"
+    echo "   open a new terminal and then"
+    echo "   activate the virtual environment that you used for installation in that terminal, and then run"
+    echo "   the script, ticketweb-devel-authsystem-prunesessions-job."
+    echo "   This script will be in the bin directory of the virtual environment that you used for installation."
+    echo "   This will start the timer and show you the logs for the prune sessions job in real time." 
+    echo "   You can stop the timer from within that script by pressing [CTRL+C], which will also stop the logs from streaming."
+    echo "   To run the auth system server, open a new terminal, activate the virtunal environment that you used for installation"
+    echo "   in that terminal, and then run the script, ticketweb-authsystem-server."
+    echo "   This will start the server in the foreground and show you the logs in real time. You can stop the server by pressing [CTRL+C] in that terminal."
+    echo "   This script can be found in the bin directory of the virtual environment that you used for installation." 
+    echo "   You may want to automate this process further by creating your own wrappers scripts in ~/.local/bin that activate the virtual environment and then call these scripts"
+    echo "   and do whatever else you want to do in terms of making it more convenient to run these scripts"
+else
+    echo "3. Since you are in production mode"
+    echo "   You will need to run 'sudo systemctl daemon-reload' to make systemd aware of the new unit files."
+    echo "   you can then run the auth system server using"
+    echo "   sudo systemctl start ticketweb-authsystem-server@$BUILD_ID.service"
+    echo "   and the prune session timer using 'sudo systemctl start ticketweb-authsystem-prunesessions@$BUILD_ID.timer'."
+    echo "   You may also want to enable the services to start on boot using"
+    echo "   'sudo systemctl enable ticketweb-authsystem-server@$BUILD_ID.service'" 
+    echo "   and 'sudo systemctl enable ticketweb-authsystem-prunesessions@$BUILD_ID.timer'."
+fi
+
+
+

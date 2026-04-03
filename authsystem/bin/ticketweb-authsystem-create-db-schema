@@ -1,0 +1,75 @@
+#!/bin/bash
+
+echo "Starting TicketWeb Auth System database schema creation..."
+echo "If you are installing the schema on a remote system where the package is not installed,"
+echo "you can export the schema using the 'ticketweb-export-session-schema' console script,"
+echo "transfer both this script andthe file to the remote system, and then provide the path to the file as an argument to this script."
+echo "When installing from a python virtual environment where the package is installed, you should activate the environment,"
+echo "and then run this script without any arguments."
+echo "If the package is installed system wide, once again, you can run this script without any arguments, although no"
+echo "activation will be necessary in that case since the package will be available to the system python environment."
+
+# Exit immediately if a command fails
+set -e
+
+usage()
+{
+  echo "Usage: ticketweb-authsystem-create-db-schema <db_name> [path_to_sql_file]"
+  echo "Note: If path_to_sql_file is omitted, the script will attempt to find it in the active python environment."
+  exit 2
+}
+
+# 1. Check for correct number of arguments
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    usage
+fi
+
+db_name="$1"
+provided_sql_path="$2"
+db_file=""
+
+# 2. Determine the SQL file path
+if [ -n "$provided_sql_path" ]; then
+    # Use the explicitly provided path if user gave one
+    db_file="$provided_sql_path"
+    echo "Using provided SQL path: $db_file"
+else
+    # Attempt to find it via the python package
+    echo "No SQL path provided. Searching active Python environment..."
+    
+    # We wrap this in a subshell check so 'set -e' doesn't kill the script if python fails
+    if command -v python &>/dev/null; then
+        db_file=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('session_storage_schema.sql'))" 2>/dev/null || echo "")
+    fi
+fi
+
+# 3. Verify the file actually exists and is readable
+if [ -z "$db_file" ] || [ ! -f "$db_file" ]; then
+    echo "Error: Could not locate 'session_storage_schema.sql'."
+    [ -n "$db_file" ] && echo "Checked path: $db_file"
+    echo "--------------------------------------------------------"
+    echo "Ensure either:"
+    echo "  1. The 'ticketweb_authsystem_server' package is installed in your venv."
+    echo "  2. You provide the path manually: $0 $db_name ./path/to/schema.sql"
+    exit 1
+fi
+
+# 4. Check if the database exists in Postgres
+if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$db_name"; then
+    echo "Error: Database '$db_name' does not exist! Aborting."
+    echo "To create it, run: sudo -u postgres createdb $db_name"
+    exit 1
+fi
+
+# 5. Create the database role if it doesn't exist
+# The SQL file handles GRANTS, but the ROLE must exist in the cluster first.
+echo "Ensuring system role 'ticketweb_authsystem' exists..."
+sudo -u postgres createuser ticketweb_authsystem 2>/dev/null || true
+
+# 6. Inject the schema
+echo "Applying schema from $db_file to database '$db_name'..."
+sudo -u postgres psql -d "$db_name" < "$db_file"
+
+echo "Success: Auth server schema and grants deployed to '$db_name'."
+
+

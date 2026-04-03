@@ -1,0 +1,44 @@
+#!/bin/bash
+set -e
+
+# Load environment (defines $DEVEL_MODE, $LOG_DIR, $BUILD_ID, etc.)
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-authsystem-setenv"
+
+config_file="$CONFIG_DIR/config.json5"
+
+# 1. Configuration Extraction
+if ! python3 -m json5 "$config_file" > /dev/null 2>&1; then
+    echo "Error: Configuration file $config_file is missing or invalid JSON5." >&2
+    exit 1
+fi
+
+config_file_contents=$(python3 -m json5 --as-json "$config_file")
+gunicorn_bind=$(echo "$config_file_contents" | jq -r .bind)
+
+# 2. Execution Logic
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Starting Development Server (Reloading)..."
+    exec gunicorn --log-level debug --reload --bind "$gunicorn_bind" \
+             "ticketweb_authsystem_server.back_end.app:main()"
+else
+    echo "Starting Production Server..."
+
+    # Check for Log Directory
+    if [ ! -w "$LOG_DIR" ]; then
+        echo "Error: Log directory $LOG_DIR does not exist or is not writable by $(whoami)." >&2
+        echo "Ensure the install script was run correctly as root." >&2
+        exit 1
+    fi
+
+    # The PID file location must match your systemd RuntimeDirectory
+    PID_FILE="/run/ticketweb/$BUILD_ID/authsystem/server.pid"
+
+    # We use 'exec' so Gunicorn receives signals directly from systemd
+    exec gunicorn --bind "$gunicorn_bind" \
+         --access-logfile="$LOG_DIR/server-access.log" \
+         --error-logfile="$LOG_DIR/server-error.log" \
+         --pid "$PID_FILE" \
+         "ticketweb_authsystem_server.back_end.app:main()"
+fi
+
+
