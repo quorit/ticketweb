@@ -8,19 +8,57 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-usage()
+verify_npm_reqs()
 {
-  echo "Usage: ticketweb-apps-build-wheel <git_repo_root> <app_name>"
-  exit 2
+    echo "Verifying Node.js, npm, and nvm environment for build..."
+    echo "Verifying Node.js environment..."
+
+    # 1. Check that node and npm exist globally or locally
+    if ! command -v node >/dev/null 2>&1; then
+        echo "Error: 'node' command not found. Node.js is required for this build." >&2
+        exit 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "Error: 'npm' command not found. npm is required for this build." >&2
+        exit 1
+    fi
+
+    echo "Found Node.js: $(node -v)"
+    echo "Found npm: $(npm -v)"
+
+    # Strict nvm check
+    echo "Verifying nvm environment..."
+    NODE_BIN_PATH=$(which node)
+    
+    if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
+        echo "Error: Building the frontend assets requires Node.js to be managed by nvm." >&2
+        echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
+        echo "Please ensure nvm is installed, loaded, and active in this terminal." >&2
+        exit 1
+    fi
+    
+    echo "nvm environment verified ($NODE_BIN_PATH)."
 }
 
-# 1. Check that there are exactly two arguments
-if [ "$#" -ne 2 ]; then
-    usage
+# 1. Determine Repository Root and App Name
+if [ -n "$TICKETWEB_REPO_ROOT" ]; then
+    git_repo_root="$TICKETWEB_REPO_ROOT"
+    if [ "$#" -ne 1 ]; then
+        echo "Usage: ticketweb-app-build-wheel <app_name>"
+        exit 2
+    fi
+    app_name="$1"
+else
+    if [ "$#" -ne 2 ]; then
+        echo "Usage: ticketweb-app-build-wheel <git_repo_root> <app_name>"
+        echo "(Or set TICKETWEB_REPO_ROOT to omit the repo root argument)"
+        exit 2
+    fi
+    git_repo_root="$1"
+    app_name="$2"
 fi
 
-git_repo_root="$1"
-app_name="$2"
 
 TARGET_DIR="$git_repo_root/apps/$app_name"
 
@@ -59,6 +97,7 @@ if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ]; then
     # 2. Deterministic Install
     echo "--> Running Deterministic npm install..."
     (
+        verify_npm_reqs
         cd "$FE_DIR" || exit 1
         # Use 'npm ci' if you have a lockfile; it's faster and cleaner for builds
         npm install 

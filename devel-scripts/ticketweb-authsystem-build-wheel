@@ -8,18 +8,23 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-usage()
-{
-  echo "Usage: ticketweb-authsystem-build-wheel <git_repo_root>"
-  exit 2
-}
 
-# 1. Check that there is exactly one argument
-if [ "$#" -ne 1 ]; then
-    usage
+
+# 1. Determine the Git repository root directory
+if [ -n "$TICKETWEB_REPO_ROOT" ]; then
+    git_repo_root="$TICKETWEB_REPO_ROOT"
+    # Ignore extra arguments if the env var is set, or you could enforce no arguments
+elif [ "$#" -eq 1 ]; then
+    git_repo_root="$1"
+else
+    echo "Usage: ticketweb-authsystem-build-wheel [git_repo_root]"
+    echo "(Or set the TICKETWEB_REPO_ROOT environment variable to omit the argument)"
+    exit 2
 fi
 
-git_repo_root="$1"
+
+
+
 TARGET_DIR="$git_repo_root/authsystem"
 
 PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
