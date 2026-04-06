@@ -8,9 +8,23 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-TARGET_DIR=${1:-"."}
+usage()
+{
+  echo "Usage: ticketweb-loginportal-build-wheel <git_repo_root>"
+  exit 2
+}
+
+# 1. Check that there is exactly one argument
+if [ "$#" -ne 1 ]; then
+    usage
+fi
+
+git_repo_root="$1"
+TARGET_DIR="$git_repo_root/loginportal"
+
 PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
-FE_DIR="$PACKAGE_ROOT/src/frontend_module"
+# FIX 2: Point to the actual nested frontend directory
+FE_DIR="$PACKAGE_ROOT/src/ticketweb_loginportal_server/frontend_module"
 
 # --- Cleanup Function ---
 cleanup() {
@@ -43,6 +57,10 @@ if [ -d "$FE_DIR" ]; then
         # Use 'npm ci' if you have a lockfile; it's faster and cleaner for builds
         npm install 
     )
+else
+    # Added a safety warning so you know if the path ever breaks again
+    echo "WARNING: Frontend directory not found at $FE_DIR"
+    echo "Skipping NPM dependency installation."
 fi
 
 # 3. Build the Python Wheel
@@ -50,6 +68,8 @@ echo "--> Packaging Wheel..."
 # We use a subshell or temporary disable 'set -e' if we want custom error handling
 # But with 'set -e' at the top, the trap will catch a failure here automatically.
 rm -rf "$PACKAGE_ROOT/dist" "$PACKAGE_ROOT/build"
-python3 -m build --wheel
+
+# FIX 1: Explicitly tell Python where the project root is
+python3 -m build --wheel "$PACKAGE_ROOT"
 
 echo "### Build Successful. Monorepo integrity maintained. ###"

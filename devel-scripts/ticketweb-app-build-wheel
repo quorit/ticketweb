@@ -1,5 +1,5 @@
 #!/bin/bash
-# ticketweb-loginportal-build-wheel <git repo root directory> <app name>
+# ticketweb-app-build-wheel <git repo root directory> <app name>
 
 set -e # Exit on error
 
@@ -24,14 +24,18 @@ app_name="$2"
 
 TARGET_DIR="$git_repo_root/apps/$app_name"
 
-
 PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
-FE_DIR="$PACKAGE_ROOT/src/frontend_module"
+
+# FIX 2: Dynamically locate the frontend module.
+# Because apps have different python package names (e.g. ticketweb_authsystem_server),
+# we use 'find' to locate it automatically instead of hardcoding the namespace.
+FE_DIR=$(find "$PACKAGE_ROOT/src" -maxdepth 2 -type d -name "frontend_module" 2>/dev/null | head -n 1)
 
 # --- Cleanup Function ---
 cleanup() {
     echo "--> Ensuring development state is restored..."
-    if [ -d "$FE_DIR" ]; then
+    # We add a check for -n "$FE_DIR" to ensure it actually found a string path
+    if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ]; then
         # Remove whatever temporary npm state exists
         rm -rf "$FE_DIR/node_modules"
         
@@ -47,7 +51,7 @@ trap cleanup EXIT
 echo "### Starting Safe Build: $PACKAGE_ROOT ###"
 
 # 1. Protect the Development State
-if [ -d "$FE_DIR" ]; then
+if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ]; then
     echo "--> Shelving development state..."
     [ -d "$FE_DIR/node_modules" ] && mv "$FE_DIR/node_modules" "$FE_DIR/node_modules_dev_bak"
     [ -f "$FE_DIR/package-lock.json" ] && cp "$FE_DIR/package-lock.json" "$FE_DIR/package-lock.json.dev_bak"
@@ -59,6 +63,9 @@ if [ -d "$FE_DIR" ]; then
         # Use 'npm ci' if you have a lockfile; it's faster and cleaner for builds
         npm install 
     )
+else
+    # FIX 3: Add explicit feedback if no frontend module is found, so it doesn't fail silently.
+    echo "--> No frontend_module detected for '$app_name'. Skipping NPM dependency installation."
 fi
 
 # 3. Build the Python Wheel
@@ -66,6 +73,8 @@ echo "--> Packaging Wheel..."
 # We use a subshell or temporary disable 'set -e' if we want custom error handling
 # But with 'set -e' at the top, the trap will catch a failure here automatically.
 rm -rf "$PACKAGE_ROOT/dist" "$PACKAGE_ROOT/build"
-python3 -m build --wheel
+
+# FIX 1: Explicitly tell Python where the project root is
+python3 -m build --wheel "$PACKAGE_ROOT"
 
 echo "### Build Successful. Monorepo integrity maintained. ###"
