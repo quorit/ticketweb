@@ -1,0 +1,20 @@
+{
+   // The ldap section has the information required for an ldap query.
+   // password exec is a command that should resolve to a password.
+   // Passwords are not stored in this file so that this file can be world-readable
+   // while making sure that passwords are protected.
+   // In production mode, the ticketweb_portal user, must be able
+   // to employ the command.
+   // In development more, the local user must be able to do so.
+   "ldap": {
+      "url": "ldaps://summer.ad.queensu.ca/",
+      "dn": "CN=OUR IT Support (OURITHLP),OU=19004,OU=OURL4,OU=OUR,OU=REG,OU=VPA,OU=QUEENS,OU=Staff,OU=People,DC=AD,DC=QUEENSU,DC=CA",
+      "search_base": "DC=AD,DC=QUEENSU,DC=CA",
+      "password_exec": "cat $CONFIG_DIR/ourithlp-pass | tr -d '\n'"
+    },
+
+
+   // The bind section tells us what port we want the server to listen on.
+   // It should only listen locally.
+   "bind": "127.0.0.1:8004"
+}

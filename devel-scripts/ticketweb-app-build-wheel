@@ -1,0 +1,71 @@
+#!/bin/bash
+# ticketweb-loginportal-build-wheel <git repo root directory> <app name>
+
+set -e # Exit on error
+
+if [ "$EUID" -eq 0 ]; then
+    echo "Error: This script must NOT be run as root."
+    exit 1
+fi
+
+usage()
+{
+  echo "Usage: ticketweb-apps-build-wheel <git_repo_root> <app_name>"
+  exit 2
+}
+
+# 1. Check that there are exactly two arguments
+if [ "$#" -ne 2 ]; then
+    usage
+fi
+
+git_repo_root="$1"
+app_name="$2"
+
+TARGET_DIR="$git_repo_root/apps/$app_name"
+
+
+PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
+FE_DIR="$PACKAGE_ROOT/src/frontend_module"
+
+# --- Cleanup Function ---
+cleanup() {
+    echo "--> Ensuring development state is restored..."
+    if [ -d "$FE_DIR" ]; then
+        # Remove whatever temporary npm state exists
+        rm -rf "$FE_DIR/node_modules"
+        
+        # Restore backups if they exist
+        [ -d "$FE_DIR/node_modules_dev_bak" ] && mv "$FE_DIR/node_modules_dev_bak" "$FE_DIR/node_modules"
+        [ -f "$FE_DIR/package-lock.json.dev_bak" ] && mv "$FE_DIR/package-lock.json.dev_bak" "$FE_DIR/package-lock.json"
+    fi
+}
+
+# Register the trap to run on EXIT, INT (Ctrl+C), and TERM
+trap cleanup EXIT
+
+echo "### Starting Safe Build: $PACKAGE_ROOT ###"
+
+# 1. Protect the Development State
+if [ -d "$FE_DIR" ]; then
+    echo "--> Shelving development state..."
+    [ -d "$FE_DIR/node_modules" ] && mv "$FE_DIR/node_modules" "$FE_DIR/node_modules_dev_bak"
+    [ -f "$FE_DIR/package-lock.json" ] && cp "$FE_DIR/package-lock.json" "$FE_DIR/package-lock.json.dev_bak"
+    
+    # 2. Deterministic Install
+    echo "--> Running Deterministic npm install..."
+    (
+        cd "$FE_DIR" || exit 1
+        # Use 'npm ci' if you have a lockfile; it's faster and cleaner for builds
+        npm install 
+    )
+fi
+
+# 3. Build the Python Wheel
+echo "--> Packaging Wheel..."
+# We use a subshell or temporary disable 'set -e' if we want custom error handling
+# But with 'set -e' at the top, the trap will catch a failure here automatically.
+rm -rf "$PACKAGE_ROOT/dist" "$PACKAGE_ROOT/build"
+python3 -m build --wheel
+
+echo "### Build Successful. Monorepo integrity maintained. ###"

@@ -1,0 +1,46 @@
+#!/bin/bash
+# ticketweb-install-system-scripts
+# Root-level dispatcher to install monorepo scripts to the local or system PATH.
+
+# 1. Identify the Repo Root and Scripts source
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPTS_SRC="$REPO_ROOT/devel-scripts"
+
+if [ ! -d "$SCRIPTS_SRC" ]; then
+    echo "Error: Could not find scripts directory at $SCRIPTS_SRC"
+    exit 1
+fi
+
+# 2. Determine Destination based on User ID
+if [ "$EUID" -eq 0 ]; then
+    echo "Error: This script should NOT be run as root. Please run as a standard user to install to the user PATH." >&2
+    exit 1
+else
+    TARGET_DIR="$HOME/.local/bin"
+    echo "### Standard user detected. Installing scripts to User Path: $TARGET_DIR ###"
+    # Ensure the local bin exists
+    mkdir -p "$TARGET_DIR"
+fi
+
+# 3. Perform the Installation
+echo "--> Syncing scripts from $SCRIPTS_SRC..."
+
+# We use 'cp -v' to show exactly what is being moved. 
+# We don't use 'ln -s' here because we want these to be independent 
+# of the repo state once "installed".
+cp -v "$SCRIPTS_SRC"/* "$TARGET_DIR/"
+
+# 4. Ensure Permissions
+echo "--> Ensuring executable permissions in $TARGET_DIR..."
+chmod +x "$TARGET_DIR"/ticketweb-*
+
+# 5. Final Path Verification
+if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
+    echo ""
+    echo "WARNING: $TARGET_DIR is not in your PATH."
+    if [ "$EUID" -ne 0 ]; then
+        echo "Add 'export PATH=\"\$HOME/.local/bin:\$PATH\"' to your .bashrc"
+    fi
+fi
+
+echo "### Installation Complete. ###"

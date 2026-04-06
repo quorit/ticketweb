@@ -56,6 +56,10 @@ def get_ms_signing_key(token, tenant_id):
 
 
 def _get_signing_key(req_token,issuer_portal):
+    if not issuer_portal in login_portal_data:
+        raise falcon.HTTPUnauthorized(
+            description="Invalid token issuer"
+        )
     login_portal_instance_data = login_portal_data[issuer_portal] 
     if issuer_portal == "ticketweb":
         loginportal_pub_key_url = login_portal_instance_data["signing_key_url"]

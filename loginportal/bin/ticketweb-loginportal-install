@@ -1,0 +1,362 @@
+#!/bin/bash
+
+echo "Starting TicketWeb Login Portal installation..."
+echo "If you are running this from a python virtual environment, ensure it is activated before running this script."
+
+config_root=unset
+
+# Exit immediately if a command fails
+set -e
+
+
+
+# 1. Pull in the environment
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-loginportal-setenv"
+
+
+# ==============================================================================
+# If in devel mode, verify Node.js, npm, and nvm requirements
+# ==============================================================================
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode detected. Verifying Node.js, npm, and nvm environment..."
+    echo "Verifying Node.js environment..."
+
+    # 1. Check that node and npm exist globally or locally
+    if ! command -v node >/dev/null 2>&1; then
+        echo "Error: 'node' command not found. Node.js is required for this installation." >&2
+        exit 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "Error: 'npm' command not found. npm is required for this installation." >&2
+        exit 1
+    fi
+
+    echo "Found Node.js: $(node -v)"
+    echo "Found npm: $(npm -v)"
+
+    #   Strict nvm check
+    echo "Verifying nvm environment..."
+    
+    # Because this is a non-interactive bash script, the 'nvm' shell function 
+    # itself won't be loaded into memory. The most bulletproof way to check 
+    # if nvm is driving the environment is to check the path of the active node binary.
+    NODE_BIN_PATH=$(which node)
+    
+    if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
+        echo "Error: Development installation requires Node.js to be managed by nvm." >&2
+        echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
+        echo "Please ensure nvm is installed, loaded, and active in this terminal." >&2
+        exit 1
+    fi
+    
+    echo "nvm environment verified ($NODE_BIN_PATH)."
+else
+    echo "Production mode detected. Skipping Node.js, npm, and nvm verification."
+fi
+
+
+# ==============================================================================
+
+
+
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode: Configurations will be set up in $CONFIG_DIR."
+else
+    echo "Production mode: Configurations will be set up in $CONFIG_DIR with appropriate permissions."
+
+fi
+
+
+
+
+
+
+if [ "$DEVEL_MODE" = "false" ]; then
+    echo "Production mode: Will attempt to create system user 'ticketweb_loginportal' if it does not exist."
+    # Check if the user exists silently
+    if ! id "ticketweb_loginportal" &>/dev/null; then
+        echo "Creating system user 'ticketweb_loginportal'..."
+        sudo useradd -r -s /sbin/nologin ticketweb_loginportal
+    else
+        echo "System user 'ticketweb_loginportal' already exists, skipping."
+    fi
+else
+    echo "Development mode: Skipping system user creation."
+fi
+
+
+# Ensure the core directories exist
+mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$LIBEXEC_DIR" "$SYSTEMD_OS_DIR" "$SRV_DIR"
+
+if [ "$DEVEL_MODE" = "false" ]; then
+    mkdir -p "$SYSTEMD_STAGING_DIR"
+fi
+
+
+
+
+# Ask the active venv's Python for the exact file path of the skeleton config file for the backend server, 
+# which is located in the package resources, so that we can copy it to the target location to be used as a template for the actual config file that the user will edit and customize.
+server_config_file=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('server-config.json5'))")
+
+
+# Copy the skeleton server config file to the target location, but only if it doesn't already exist there to avoid overwriting any existing configuration.
+if [ ! -e "$CONFIG_DIR/server-config.json5" ]; then
+   cp "$server_config_file" "$CONFIG_DIR/server-config.json5"
+else
+    echo "Did not copy 'server-config.json5' because file already exists at $CONFIG_DIR/server-config.json5."
+fi
+
+# We also want to get the path to the skeleton frontend config file, since we will also be copying it to the target location as a template for the user to edit and customize.
+frontend_config_file=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('frontend-config.json5'))")
+
+if [ ! -e "$CONFIG_DIR/frontend-config.json5" ]; then
+   cp "$frontend_config_file" "$CONFIG_DIR/frontend-config.json5"
+else
+    echo "Did not copy 'frontend-config.json5' because file already exists at $CONFIG_DIR/frontend-config.json5."
+fi
+
+
+pem_file="$CONFIG_DIR/secret.pem"
+echo "Generating new RSA private key for JWT token signing and verification at $pem_file..."
+echo "The public key is always derivable from this private key and is used for verifying tokens," 
+echo "while the private key will be used for signing them."
+openssl genrsa -out "$pem_file" 2048
+
+
+if [ "$DEVEL_MODE" = "false" ]; then
+   echo "Securing pem file..."
+   chown ticketweb_loginportal:ticketweb_loginportal "$pem_file"
+
+fi
+
+
+
+# We want to copy out the systemd unit files. We will copy them over even if they already exist, because they are small and we want to ensure the latest versions are in place. 
+# The user can always customize them after the fact if needed.
+# In the case of development mode, the files are copied to the user's systemd directory, which is ~/.config/systemd/user, 
+# so that the user can manage the services using systemctl --user.
+# In the case of production mode, the files are copied to a staging directory, which is /usr/lib/systemd/system, 
+# and then symbolic links are created in /etc/systemd/system that point to the staging directory,
+# so that the services can be managed using systemctl at the system level.
+
+# Since files in the staging directory have to be linked to from the systemd system path,
+# and the link names won't have the $BUILD_ID in them, 
+# we can't use a staging directory that is unique to each build. 
+# We are accepting that this will cause overwriting of unit files that
+# have the same name accross different builds, but in the case of a version difference,
+# the sysadmin can make custom unit files in /etc/systemd/system that 
+# don't link to the new ones in the staging directory.
+# 
+
+unit_file_source=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('systemd-unit-files'))")
+
+if [ "$DEVEL_MODE" = "true" ]; then
+    # No unit files to copy for loginportal in development mode, since the user can just run the scripts directly without needing systemd unit files.
+    # echo "Development mode: Copying systemd unit files to $SYSTEMD_OS_DIR for user-level management..."
+    # cp -r "$unit_file_source/"* "$SYSTEMD_OS_DIR/"
+    echo "Development mode: No systemd unit files to copy since the user can just run the scripts directly without needing systemd unit files."
+else
+    echo "Production mode: Copying systemd unit files to $SYSTEMD_STAGING_DIR for system-level management..."
+    # "Override directory for user-level management is not copied."
+    cp "$unit_file_source/"*.service "$SYSTEMD_STAGING_DIR/"
+    # cp "$unit_file_source/"*.timer "$SYSTEMD_STAGING_DIR/"
+
+    echo "Creating symbolic links for systemd unit files in $SYSTEMD_STAGING_DIR to point to $SYSTEMD_OS_DIR..."
+    ln -sf "$SYSTEMD_STAGING_DIR/"*.service "$SYSTEMD_OS_DIR/"
+    # ln -sf "$SYSTEMD_STAGING_DIR/"*.timer "$SYSTEMD_OS_DIR/"
+
+fi
+
+
+
+
+
+# ==============================================================================
+# Create Wrapper Scripts in $LIBEXEC_DIR (Production & Development Modes)
+# ==============================================================================
+
+
+
+echo "Creating server wrapper scripts in $LIBEXEC_DIR..."
+
+# Ensure the targeted subdirectory exists
+mkdir --parents "$LIBEXEC_DIR"
+
+# Define the wrappers to create. 
+# Format is "Wrapper_Name:Underlying_Python_App"
+executables=(
+    "ticketweb-loginportal-server:ticketweb-loginportal-server"
+)
+
+for exe_pair in "${executables[@]}"; do
+    wrapper_name="${exe_pair%%:*}"
+    python_app="${exe_pair##*:}"
+    wrapper_path="$LIBEXEC_DIR/$wrapper_name"
+    
+    if [ -n "$VIRTUAL_ENV" ]; then
+        echo "  -> Writing $wrapper_name (with venv activation)..."
+        cat << EOF > "$wrapper_path"
+#!/bin/bash
+# Auto-generated wrapper for $wrapper_name
+
+# Activate the virtual environment
+source "$VIRTUAL_ENV/bin/activate"
+
+# Replace shell with the actual Python process using an absolute path
+exec "$VIRTUAL_ENV/bin/$python_app" "\$@"
+EOF
+    else
+        echo "  -> Writing $wrapper_name (system-wide context)..."
+        # For system-wide, use 'which' or assume it's in the standard /usr/bin/
+        cat << EOF > "$wrapper_path"
+#!/bin/bash
+# Auto-generated wrapper for $wrapper_name
+
+# Replace shell with the actual Python process using absolute path
+exec "/usr/bin/$python_app" "\$@"
+EOF
+    fi
+
+    # Make the wrapper executable
+    chmod 755 "$wrapper_path"
+    
+    # In production mode (running as root), secure ownership
+    if [ "$DEVEL_MODE" = "false" ]; then
+        chown root:root "$wrapper_path"
+    fi
+done
+##### End of wrapper script creation loop #####
+
+
+
+# ==============================================================================
+# Provision Frontend Module (Development Only)
+# ==============================================================================
+frontend_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('frontend_module'))")
+echo "Front end module path located at: $frontend_module_path"
+
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode detected. Provisioning frontend development dependencies..."
+    (
+        cd "$frontend_module_path" || exit 1
+        
+        echo "Running npm install..."
+        npm install
+        
+    )
+else
+    echo "Standard production install detected. No frontend dependency provisioning."
+    echo "(npm install will already have been ran when the wheel was built."
+    echo "npm build will not have been ran, but will have to be performed"
+    echo "by the script 'ticketweb_loginportal_servebuild' after adjusting the front end config file,"
+    echo "$CONFIG_DIR/frontend-config.json5, to ensure the build is customized for the deployment environment,"
+    echo "since the build must be customized relative to the environment.)"
+fi
+# ================================================================= 
+
+
+
+echo "Installation complete!"
+
+echo "Now you need to do the following:"
+
+
+echo "1. Edit the frontend configuration file located at" 
+echo "           $CONFIG_DIR/frontend-config.json5"
+echo "   and adjust the settings as needed for your deployment environment."
+echo "   This file controls how the frontend is built and served, and it needs to be customized for your specific setup."
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "2. To run the frontend development server, follow these steps:"
+    echo "      a) Make sure that TICKETWEB_DEVEL_VENV_ROOT is set to the path of your virtual environment in your shell configuration file (e.g. .bashrc, .zshrc)."
+    echo "      b) If you have not already installed the development scripts do so now. They reside in the devel-scripts"
+    echo "         subdirectoy of the github repository, and they are not included in the pip package since they are only meant for development use."
+    echo "         To install them, you can use the script,"
+    echo "                 ticketweb-install-devel-scripts,"
+    echo "         which resides at the top level of the repository,"
+    echo "         It's function is to copy the scripts from the devel-scripts directory to ~/.local/bin," 
+    echo "         which should be in your PATH if you are using a standard Linux setup,"
+    echo "      c) Run the frontend development server using"
+    echo "               ticketweb-devel-loginportal-frontend-serve"
+    echo "         which will serve the frontend with hot reload enabled for development convenience."
+else
+    echo "2. To build and deploy the frontend for production, you can run the script," 
+    echo "               'ticketweb-loginportal-frontend-servebuild --non-root-user <your own username here>"
+    echo "   You will have to specify a non-root user (normally yourself) because the build process needs to perform some subtasks as a non-root user for security reasons," 
+    echo "   even in production deployments, because the build process involves running npm scripts which should not be run as root for security reasons."
+    echo "   As always with these scripts, if the installation was in a virtual environment, you need activate said virtual environment first before running said script."
+    echo "   The frontend, once built, will be dropped in $SRV_DIR."
+    echo "   You can then point it from Apache or whichever web server you are using to serve static files from that directory."
+    echo "   For intance you might have a section in your Apache config that looks like this:"
+    echo "     <Directory \"$SRV_DIR\">"
+    echo "          AuthType None"
+    echo "          RewriteEngine On"
+    echo "          RewriteBase /ticketweb_preview/loginportal/frontend"
+    echo "          RewriteRule ^/ticketweb_preview/loginportal/frontend/index\\.html$ - [L]"
+    echo "          RewriteCond %{REQUEST_FILENAME} !-f"
+    echo "          RewriteCond %{REQUEST_FILENAME} !-d"
+    echo "          RewriteRule . /ticketweb_preview/loginportal/frontend/index.html [L]"
+    echo "          Require ip 130.15.108.0/23 10.0.0.0/8"
+    echo "     </Directory>"
+    echo "   This will serve the frontend at the URL path /ticketweb_preview/loginportal/frontend and ensure that" 
+    echo "   all requests to that path are properly rewritten to support client-side routing, while also ensuring that only" 
+    echo "   users on the campus network can access it since it isn't meant to be used by the general public."
+    echo "   Note that the path here must match the value of vue_app_path_roots/frontend"
+    echo "   in the frontend config file located at $CONFIG_DIR/frontend-config.json5, since the frontend needs to know it's own path."
+
+fi
+echo "3. To configure the server before running it, you will have to edit" 
+echo "            $CONFIG_DIR/server-config.json5"
+echo "   and make adjustments."
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "4. Since you are in development mode, to run the server, you should do the following:"
+    echo "      a) If you have not already installed the development scripts do so now. They reside in the devel-scripts"
+    echo "         subdirectoy of the github repository, and they are not included in the pip package since they are only meant for development use."
+    echo "         To install them, you can use the script,"
+    echo "                 ticketweb-install-devel-scripts,"
+    echo "         which resides at the top level of the repository,"
+    echo "         It's function is to copy the scripts from the devel-scripts directory to ~/.local/bin," 
+    echo "         which should be in your PATH if you are using a standard Linux setup,"
+    echo "      b) Make sure that TICKETWEB_DEVEL_VENV_ROOT is set to the path of your virtual environment in your shell"
+    echo "         configuration file (e.g. .bashrc, .zshrc)."   
+    echo "      c) Run the login portal server using"
+    echo "                ticketweb-devel-loginportal-server"
+    echo "         This will start the server in the foreground and show you the logs in real time."
+    echo "         You can stop the server by pressing [CTRL+C] in that terminal."
+else
+    echo "4. Since you are in production mode, you will need to run the server"
+    echo "   using the systemd service, which was installed by this script as part of the installation process."
+    echo "   You will also need to proxy the server from your web server (e.g. Apache or Nginx) to allow it to be accessed by remote clients,"
+    echo "   since the server itself only listens on localhost for security reasons."
+    echo "   More specifically, you can follow these steps to accomplish this:"
+    echo "      a) You will need to run"
+    echo "            'sudo systemctl daemon-reload' "
+    echo "         to make systemd aware of the new unit file."
+    echo "         You can then run the portal server using"
+    echo "             sudo systemctl start ticketweb-loginportal-server@$BUILD_ID.service"
+    echo "         You may also want to enable the service to start on boot using"
+    echo "             'sudo systemctl enable ticketweb-loginportal-server@$BUILD_ID.service'" 
+    echo "      b). Configure your web server:"
+    echo "          For instance, if your server is bound to port 8004, in your Apache config you might have a section that looks like this:"
+    echo '             ProxyPass "/ticketweb/loginportal/server" "http://localhost:8004/"'
+    echo "             <Location /ticketweb/loginportal/server>"
+    echo "                AuthType None"
+    echo "                Require ip 130.15.108.0/23 10.0.0.0/8"
+    echo "            </Location>"
+    echo "        This will tie the path,"
+    echo "           /ticketweb/loginportal/server"
+    echo "       to the backend" 
+    echo "       server and ensure that only users on the campus network can access it since, it isn't meant to be used by the general public."
+    echo "       Note that the path here must match the value of"
+    echo "          vue_app_path_roots/server"
+    echo "       in the frontend config file located at"
+    echo "         $CONFIG_DIR/frontend-config.json5," 
+    echo "       since the frontend needs to know where the backend is located to be able to send requests to it."
+    echo "    5. Restart your web server to apply the new configuration changes you made, (for both the front end and the back end)."
+    echo "       For instance, if you are using Apache, you might run" 
+    echo "            'sudo systemctl restart httpd.service' to restart it and apply the new configuration."
+fi
+
+
+

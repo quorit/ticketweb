@@ -1,0 +1,63 @@
+#!/bin/bash
+
+
+
+# Exit immediately if a command fails
+set -e
+
+usage()
+{
+  echo "Usage: ticketweb-authsystem-create-db-schema <db_name> <path_to_sql_file>"
+  exit 2
+}
+
+# 1. Check that there are exactly two arguments
+if [ "$#" -ne 2 ]; then
+    usage
+fi
+
+
+db_name="$1"
+db_file="$2"
+
+
+
+# 2. Verify the file actually exists and is readable
+if [ ! -f "$db_file" ]; then
+    echo "Error: SQL payload missing at $db_file."
+    echo "This indicates a failure in the self-extracting installer."
+    exit 1
+fi
+
+# 3. Check if the database exists in Postgres
+if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$db_name"; then
+    echo "Error: Database '$db_name' does not exist! Aborting."
+    echo "To create it, run: sudo -u postgres createdb $db_name"
+    exit 1
+fi
+
+# 4. Create the database role if it doesn't exist
+# The SQL file handles GRANTS, but the ROLE must exist in the cluster first.
+echo "Ensuring system role 'ticketweb_authsystem' exists..."
+sudo -u postgres createuser ticketweb_authsystem 2>/dev/null || true
+
+# 5 Check if the schema 'session_storage' already exists
+echo "Checking for existing 'session_storage' schema..."
+SCHEMA_EXISTS=$(sudo -u postgres psql -d "$db_name" -tAc "SELECT 1 FROM pg_namespace WHERE nspname = 'session_storage';")
+
+if [ "$SCHEMA_EXISTS" = "1" ]; then
+    echo "Error: Schema 'session_storage' already exists in database '$db_name'!"
+    echo "Aborting to avoid conflicting with existing data."
+    echo "If a version difference means that the existing schema is incompatible with the new one, you can either"
+    echo "drop the existing schema or back it up by renaming it, before running this script."
+    exit 1
+fi
+
+
+# 6. Inject the schema
+echo "Applying schema from $db_file to database '$db_name'..."
+sudo -u postgres psql -d "$db_name" < "$db_file"
+
+echo "Success: Auth server schema and grants deployed to '$db_name'."
+
+

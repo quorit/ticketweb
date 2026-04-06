@@ -1,0 +1,42 @@
+#!/bin/bash
+# ticketweb-authsystem-build-wheel <git_repo_root_directory>
+
+
+set -e # Exit immediately if a command fails
+
+if [ "$EUID" -eq 0 ]; then
+    echo "Error: Do not run as root."
+    exit 1
+fi
+
+usage()
+{
+  echo "Usage: ticketweb-authsystem-build-wheel <git_repo_root>"
+  exit 2
+}
+
+# 1. Check that there is exactly one arguments
+if [ "$#" -ne 1 ]; then
+    usage
+fi
+
+git_repo_root="$1"
+TARGET_DIR="$git_repo_root/authsystem"
+
+
+
+PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
+
+echo "### Packaging AuthSystem Library: $PACKAGE_ROOT ###"
+cd "$PACKAGE_ROOT" || exit 1
+
+# Clean and build ONLY the Python wheel (including Vue source via MANIFEST.in)
+rm -rf dist/ build/ *.egg-info/
+python3 -m build --wheel
+
+if [ $? -eq 0 ]; then
+    echo "### AuthSystem Library Wheel Ready: $(ls dist/*.whl) ###"
+else
+    echo "Error: AuthSystem build failed."
+    exit 1
+fi
