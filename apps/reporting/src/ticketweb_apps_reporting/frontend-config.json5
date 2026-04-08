@@ -1,0 +1,93 @@
+{
+   //app_name should always be reporting. I don't think this should be required.
+   "app_name": "reporting",
+   
+
+   // In devel mode,
+   // vue_app_path_roots might look like:
+   // "vue_app_path_roots": {
+   //     "frontend": "/app/frontend/",
+   //     "shared_data": "/app/shared-data/",
+   //     "app_server": "/app/server/",
+   //     "authsystem": "/authsystem-server/"
+   // },
+   //
+   // In production mode,
+   // vue_app_path_roots might look like this:
+   // "vue_app_path_roots": {
+   //    "frontend": "/ticketweb/apps/reporting/frontend/",
+   //    "shared_data": "/ticketweb/apps/reporting/shared-data/",
+   //    "app_server": "/ticketweb/apps/reporting/server/",
+   //    "authsystem": "/ticketweb/authsystem-server/"
+   // },
+   // 'frontend' tells the front end it's own url root
+   // 'shared_data' is a url path from which static data is fetched
+   // 'app_server' is a url path for the app's backend server, which is always proxied
+   // 'authsystem' is a url path for the auth system server. The front end sets establishes 
+   // sessions
+   // and fetches app tokens from the auth system.
+   "vue_app_path_roots": {
+      "frontend": "/app/frontend/",
+      "shared_data": "/app/shared-data/",
+      "app_server": "/app/server/",
+      "authsystem": "/authsystem-server/"
+   },
+   "banner": {
+       "mode_text": "(development build)",
+       "color": "red"
+   },
+   "attachments": {
+       "max_attachcount": 6,
+       "max_upload_size_mb": 6
+   },
+
+
+
+
+   "login_portal_info":{
+      // portal_type is either 'ticketweb' or 'microsoft'
+      // The ticketweb mock portal is for devel use only,
+      // so in production, "portal_type" should always be 'microsoft'.
+      // if 'portal_type' is set to 'microsoft'
+      // 'data' will be set like this:
+      //"data": {
+      //    "client_id": "19f2994b-849b-4717-8410-af9f41000e0a",
+      //    "tenant_id": "d61ecb3b-38b1-42d5-82c4-efb2838b925c"
+      //}
+      // if 'portal_type' is set to 'ticketweb' then
+      // 'data' will be set like this:
+      //        "data": {
+      //         "server_root": "http://localhost:8082/"
+      // }
+      // 
+      // Here, "server_root" is the url of the portal
+      // which gets redirected to when sessions expire or authorization fails.
+      // Specifically the browser tab will be redirected to {server_root}/frontend
+      "portal_type": "ticketweb",
+      "data": {
+         "server_root": "http://localhost:8082/"
+      }
+   },
+
+
+   // The devel server section is only used in development mode, and is ignored in production mode. 
+   // It contains configuration options that are specific to the development server, such as proxy settings and the port to listen on.
+   // In production mode, you should probably delete this section or comment it out, to avoid any confusion.
+
+   "devel_server": {
+       // In development mode the proxies section
+       // ties the 'shared_data', 'server', and 'authsystem' paths 
+       // (defined in the vue_app_path roots section) to back-end servers.
+      "proxies": {
+          "shared_data": "http://127.0.0.1:8000/apps/reporting",
+          "app_server": "http://127.0.0.1:8002",
+          "authsystem": "http://127.0.0.1:8001"
+       },
+
+       // the port is the port that the front end development web server will listen on.
+       "port": "8080"
+   }
+}
+
+
+

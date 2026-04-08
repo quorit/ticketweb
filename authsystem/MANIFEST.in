@@ -1,7 +1,12 @@
 graft src/ticketweb_authsystem_server
-prune src/ticketweb_authsystem_server/frontend_module/node_modules
+prune src/ticketweb_authsystem_server/frontend-module/node_modules
+prune src/ticketweb_authsystem_server/frontend-module/dist
+recursive-exclude src/ticketweb_authsystem_server/frontend-module .env*
+prune src/ticketweb_authsystem_server/frontend-module/.venv
 
 # Explicitly includes the built frontend module,
 # while excluding the node_modules subdirectory, which is just a staging directory for the frontend module build process, 
 # and may contain very large amount of file content that we don't want to include in the package.
 # This is in necessary because, in development mode, upon installing, we will have built the module in-place.
+
+

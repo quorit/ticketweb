@@ -1,0 +1,105 @@
+#!/bin/bash
+
+set -e # Exit immediately if a command fails
+
+if [ "$EUID" -eq 0 ]; then
+    echo "Error: Do not run as root."
+    exit 1
+fi
+
+
+
+# 1. Determine the Git repository root directory
+if [ -n "$TICKETWEB_REPO_ROOT" ]; then
+    git_repo_root="$TICKETWEB_REPO_ROOT"
+    # Ignore extra arguments if the env var is set, or you could enforce no arguments
+elif [ "$#" -eq 1 ]; then
+    git_repo_root="$1"
+else
+    echo "Usage: ticketweb-rt-interface-build-wheel [git_repo_root]"
+    echo "(Or set the TICKETWEB_REPO_ROOT environment variable to omit the argument)"
+    exit 2
+fi
+
+verify_npm_reqs()
+{
+    echo "Verifying Node.js, npm, and nvm environment for build..."
+    echo "Verifying Node.js environment..."
+
+    # 1. Check that node and npm exist globally or locally
+    if ! command -v node >/dev/null 2>&1; then
+        echo "Error: 'node' command not found. Node.js is required for this build." >&2
+        exit 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "Error: 'npm' command not found. npm is required for this build." >&2
+        exit 1
+    fi
+
+    echo "Found Node.js: $(node -v)"
+    echo "Found npm: $(npm -v)"
+
+    # Strict nvm check
+    echo "Verifying nvm environment..."
+    NODE_BIN_PATH=$(which node)
+    
+    if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
+        echo "Error: Building the frontend assets requires Node.js to be managed by nvm." >&2
+        echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
+        echo "Please ensure nvm is installed, loaded, and active in this terminal." >&2
+        exit 1
+    fi
+    
+    echo "nvm environment verified ($NODE_BIN_PATH)."
+}
+
+
+TARGET_DIR="$git_repo_root/rt-interface"
+
+PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
+
+# Dynamically locate the frontend module to ensure uniformity with other scripts
+FE_DIR="$PACKAGE_ROOT/src/ticketweb_rt_interface_lib/frontend-module"
+# --- Cleanup Function ---
+cleanup() {
+    echo "--> Ensuring development state is restored..."
+    if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ]; then
+        # Restore backups if they exist. We don't delete node_modules blindly here 
+        # because we didn't run an npm install during this specific build.
+        [ -d "$FE_DIR/node_modules_dev_bak" ] && mv "$FE_DIR/node_modules_dev_bak" "$FE_DIR/node_modules"
+        [ -f "$FE_DIR/package-lock.json.dev_bak" ] && mv "$FE_DIR/package-lock.json.dev_bak" "$FE_DIR/package-lock.json"
+    fi
+}
+
+
+# Register the trap to run on EXIT, INT (Ctrl+C), and TERM
+trap cleanup EXIT
+
+echo "### Packaging RT Interface Library: $PACKAGE_ROOT ###"
+
+# 2. Protect the Development State
+if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ]; then
+    echo "--> Shelving frontend development state to ensure clean Wheel..."
+    [ -d "$FE_DIR/node_modules" ] && mv "$FE_DIR/node_modules" "$FE_DIR/node_modules_dev_bak"
+    [ -f "$FE_DIR/package-lock.json" ] && cp "$FE_DIR/package-lock.json" "$FE_DIR/package-lock.json.dev_bak"
+        # 2. Deterministic Install
+    echo "--> Running Deterministic npm install..."
+    (
+        verify_npm_reqs
+        cd "$FE_DIR" || exit 1
+        # Use 'npm ci' if you have a lockfile; it's faster and cleaner for builds
+        echo "Running 'npm install' in $FE_DIR..."
+        npm install 
+    )
+fi
+
+# 3. Clean and build using explicit paths
+echo "--> Cleaning old build artifacts..."
+rm -rf "$PACKAGE_ROOT/dist" "$PACKAGE_ROOT/build" "$PACKAGE_ROOT"/*.egg-info
+
+echo "--> Compiling Python Wheel..."
+python3 -m build --wheel "$PACKAGE_ROOT"
+
+# Because 'set -e' is active, the script only reaches this line if the build was completely successful.
+echo "### AuthSystem Library Wheel Ready: $(ls "$PACKAGE_ROOT/dist"/*.whl) ###"

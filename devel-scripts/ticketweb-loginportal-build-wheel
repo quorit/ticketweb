@@ -60,7 +60,7 @@ TARGET_DIR="$git_repo_root/loginportal"
 
 PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
 # FIX 2: Point to the actual nested frontend directory
-FE_DIR="$PACKAGE_ROOT/src/ticketweb_loginportal_server/frontend_module"
+FE_DIR="$PACKAGE_ROOT/src/ticketweb_loginportal_server/frontend-module"
 
 # --- Cleanup Function ---
 cleanup() {
@@ -92,6 +92,7 @@ if [ -d "$FE_DIR" ]; then
         verify_npm_reqs
         cd "$FE_DIR" || exit 1
         # Use 'npm ci' if you have a lockfile; it's faster and cleaner for builds
+        echo "Running 'npm install' in $FE_DIR..."
         npm install 
     )
 else

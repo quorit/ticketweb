@@ -89,10 +89,6 @@ fi
 # Ensure the core directories exist
 mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$LIBEXEC_DIR" "$SYSTEMD_OS_DIR" "$SRV_DIR"
 
-if [ "$DEVEL_MODE" = "false" ]; then
-    mkdir -p "$SYSTEMD_STAGING_DIR"
-fi
-
 
 
 
@@ -137,17 +133,10 @@ fi
 # The user can always customize them after the fact if needed.
 # In the case of development mode, the files are copied to the user's systemd directory, which is ~/.config/systemd/user, 
 # so that the user can manage the services using systemctl --user.
-# In the case of production mode, the files are copied to a staging directory, which is /usr/lib/systemd/system, 
-# and then symbolic links are created in /etc/systemd/system that point to the staging directory,
-# so that the services can be managed using systemctl at the system level.
 
-# Since files in the staging directory have to be linked to from the systemd system path,
-# and the link names won't have the $BUILD_ID in them, 
-# we can't use a staging directory that is unique to each build. 
 # We are accepting that this will cause overwriting of unit files that
 # have the same name accross different builds, but in the case of a version difference,
-# the sysadmin can make custom unit files in /etc/systemd/system that 
-# don't link to the new ones in the staging directory.
+# the sysadmin can make custom unit files in /etc/systemd/system.
 # 
 
 unit_file_source=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('systemd-unit-files'))")
@@ -158,14 +147,12 @@ if [ "$DEVEL_MODE" = "true" ]; then
     # cp -r "$unit_file_source/"* "$SYSTEMD_OS_DIR/"
     echo "Development mode: No systemd unit files to copy since the user can just run the scripts directly without needing systemd unit files."
 else
-    echo "Production mode: Copying systemd unit files to $SYSTEMD_STAGING_DIR for system-level management..."
+    echo "Production mode: Copying systemd unit files to $SYSTEMD_OS_DIR for system-level management..."
     # "Override directory for user-level management is not copied."
-    cp "$unit_file_source/"*.service "$SYSTEMD_STAGING_DIR/"
-    # cp "$unit_file_source/"*.timer "$SYSTEMD_STAGING_DIR/"
+    cp "$unit_file_source/"*.service "$SYSTEMD_OS_DIR/"
+    # cp "$unit_file_source/"*.timer "$SYSTEMD_OS_DIR/"
 
-    echo "Creating symbolic links for systemd unit files in $SYSTEMD_STAGING_DIR to point to $SYSTEMD_OS_DIR..."
-    ln -sf "$SYSTEMD_STAGING_DIR/"*.service "$SYSTEMD_OS_DIR/"
-    # ln -sf "$SYSTEMD_STAGING_DIR/"*.timer "$SYSTEMD_OS_DIR/"
+
 
 fi
 
@@ -234,7 +221,7 @@ done
 # ==============================================================================
 # Provision Frontend Module (Development Only)
 # ==============================================================================
-frontend_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('frontend_module'))")
+frontend_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('frontend-module'))")
 echo "Front end module path located at: $frontend_module_path"
 
 if [ "$DEVEL_MODE" = "true" ]; then
@@ -248,8 +235,7 @@ if [ "$DEVEL_MODE" = "true" ]; then
     )
 else
     echo "Standard production install detected. No frontend dependency provisioning."
-    echo "(npm install will already have been ran when the wheel was built."
-    echo "npm build will not have been ran, but will have to be performed"
+    echo "(npm build followed by npm run build will will have to be performed"
     echo "by the script 'ticketweb_loginportal_servebuild' after adjusting the front end config file,"
     echo "$CONFIG_DIR/frontend-config.json5, to ensure the build is customized for the deployment environment,"
     echo "since the build must be customized relative to the environment.)"

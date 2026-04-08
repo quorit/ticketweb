@@ -14,50 +14,6 @@ set -e
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-authsystem-setenv"
 
 
-# ==============================================================================
-# If in devel mode, verify Node.js, npm, and nvm requirements
-# ==============================================================================
-if [ "$DEVEL_MODE" = "true" ]; then
-    echo "Development mode detected. Verifying Node.js, npm, and nvm environment..."
-    echo "Verifying Node.js environment..."
-
-    # 1. Check that node and npm exist globally or locally
-    if ! command -v node >/dev/null 2>&1; then
-        echo "Error: 'node' command not found. Node.js is required for this installation." >&2
-        exit 1
-    fi
-
-    if ! command -v npm >/dev/null 2>&1; then
-        echo "Error: 'npm' command not found. npm is required for this installation." >&2
-        exit 1
-    fi
-
-    echo "Found Node.js: $(node -v)"
-    echo "Found npm: $(npm -v)"
-
-    #   Strict nvm check
-    echo "Verifying nvm environment..."
-    
-    # Because this is a non-interactive bash script, the 'nvm' shell function 
-    # itself won't be loaded into memory. The most bulletproof way to check 
-    # if nvm is driving the environment is to check the path of the active node binary.
-    NODE_BIN_PATH=$(which node)
-    
-    if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
-        echo "Error: Development installation requires Node.js to be managed by nvm." >&2
-        echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
-        echo "Please ensure nvm is installed, loaded, and active in this terminal." >&2
-        exit 1
-    fi
-    
-    echo "nvm environment verified ($NODE_BIN_PATH)."
-else
-    echo "Production mode detected. Skipping Node.js, npm, and nvm verification."
-fi
-
-
-# ==============================================================================
-
 
 
 if [ "$DEVEL_MODE" = "true" ]; then
@@ -88,10 +44,6 @@ fi
 
 # Ensure the core directories exist
 mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$LIBEXEC_DIR" "$SYSTEMD_OS_DIR"
-
-if [ "$DEVEL_MODE" = "false" ]; then
-    mkdir -p "$SYSTEMD_STAGING_DIR"
-fi
 
 
 mkdir --parents --mode=770 "$CONFIG_DIR/rsa"
@@ -128,17 +80,11 @@ fi
 # The user can always customize them after the fact if needed.
 # In the case of development mode, the files are copied to the user's systemd directory, which is ~/.config/systemd/user, 
 # so that the user can manage the services using systemctl --user.
-# In the case of production mode, the files are copied to a staging directory, which is /usr/lib/systemd/system, 
-# and then symbolic links are created in /etc/systemd/system that point to the staging directory,
-# so that the services can be managed using systemctl at the system level.
 
-# Since files in the staging directory have to be linked to from the systemd system path,
-# and the link names won't have the $BUILD_ID in them, 
-# we can't use a staging directory that is unique to each build. 
+
 # We are accepting that this will cause overwriting of unit files that
 # have the same name accross different builds, but in the case of a version difference,
-# the sysadmin can make custom unit files in /etc/systemd/system that 
-# don't link to the new ones in the staging directory.
+# the sysadmin can make custom unit files in /etc/systemd/system.
 # 
 
 unit_file_source=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('systemd-unit-files'))")
@@ -147,14 +93,12 @@ if [ "$DEVEL_MODE" = "true" ]; then
     echo "Development mode: Copying systemd unit files to $SYSTEMD_OS_DIR for user-level management..."
     cp -r "$unit_file_source/"* "$SYSTEMD_OS_DIR/"
 else
-    echo "Production mode: Copying systemd unit files to $SYSTEMD_STAGING_DIR for system-level management..."
+    echo "Production mode: Copying systemd unit files to $SYSTEMD_OS_DIR for system-level management..."
     # "Override directory for user-level management is not copied."
-    cp "$unit_file_source/"*.service "$SYSTEMD_STAGING_DIR/"
-    cp "$unit_file_source/"*.timer "$SYSTEMD_STAGING_DIR/"
+    cp "$unit_file_source/"*.service "$SYSTEMD_OS_DIR/"
+    cp "$unit_file_source/"*.timer "$SYSTEMD_OS_DIR/"
 
-    echo "Creating symbolic links for systemd unit files in $SYSTEMD_STAGING_DIR to point to $SYSTEMD_OS_DIR..."
-    ln -sf "$SYSTEMD_STAGING_DIR/"*.service "$SYSTEMD_OS_DIR/"
-    ln -sf "$SYSTEMD_STAGING_DIR/"*.timer "$SYSTEMD_OS_DIR/"
+
 
 fi
 
@@ -221,31 +165,6 @@ done
 
 
 
-# ==============================================================================
-# Provision Frontend Module (Development Only)
-# ==============================================================================
-frontend_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('frontend_module'))")
-echo "Front end module path located at: $frontend_module_path"
-
-if [ "$DEVEL_MODE" = "true" ]; then
-    echo "Development mode detected. Provisioning frontend development dependencies..."
-    (
-        cd "$frontend_module_path" || exit 1
-        
-        echo "Running npm install..."
-        npm install
-        
-        echo "Running npm link..."
-        npm link
-    )
-else
-    echo "Standard production install detected. Skipping frontend dependency provisioning."
-    echo "(No frontend assets are built with this package, even when building the wheel."
-    echo "The front end assets included in the package serve only as a library for use by modules"
-    echo "outside of this package. It is their responsiblity to build them.)"
-fi
-# ==============================================================================
-
 
 
 echo "Installation complete!"
@@ -265,13 +184,16 @@ echo "   and it can be run on any machine that has the same architecture and OS 
 echo "   regardless of whether it has the python package installed or not."
 echo "   With this in mind, the steps involved in creating the schema are as follows:"
 echo "         a) Generate the installer by running this command (activate your venv first if you are using one):"
-echo "                ticketweb-mk-db-installer <installer_output_path>"
-echo "            For example: ticketweb-mk-db-installer /tmp/ticketweb-authsystem-create-db-schema-installer.sh"
+echo "                ticketweb-authsystem mk-db-installer <installer_output_path>"
+echo "            For example:" 
+echo "                ticketweb-authsystem-mk-db-installer /tmp/ticketweb-authsystem-create-db-schema-installer.sh"
 echo "         b) If the database is on a remote server,"
 echo "            copy the installer script to the remote server using scp or some other secure file transfer method."
 echo "         c) Run the installer script that you generated in step a). For example:"
 echo "                bash /tmp/ticketweb-authsystem-create-db-schema-installer.sh <db_name>" 
-echo "3. You will have to edit $CONFIG_DIR/config.json5 and make adjustments."
+echo "3. You will have to edit"
+echo "        $CONFIG_DIR/config.json5"
+echo "   and make adjustments."
 echo "   Among those adjustments, you will need to set the database connection string to point to the database you set up in step 1."
 if [ "$DEVEL_MODE" = "true" ]; then
     echo "4. Since you are in development mode, to run the server and the prune sessions timer, you should do the following:"
@@ -286,11 +208,10 @@ if [ "$DEVEL_MODE" = "true" ]; then
     echo "         configuration file (e.g. .bashrc, .zshrc)."   
     echo "      c) Run 'systemctl --user daemon-reload' to make systemd aware of the new unit files." 
     echo "      d) you can run the prune sessions timer as follows:"
-    echo "      e) Run the devel script,"
     echo "                ticketweb-devel-authsystem-prunesessions-job"
     echo "         This will start the timer and show you the logs for the prune sessions job in real time." 
     echo "         You can stop the timer from within that script by pressing [CTRL+C], which will also stop the logs from streaming."
-    echo "      f) Run the auth system server using"
+    echo "      4) Run the auth system server using"
     echo "                ticketweb-devel-authsystem-server"
     echo "         This will start the server in the foreground and show you the logs in real time."
     echo "         You can stop the server by pressing [CTRL+C] in that terminal."
@@ -302,7 +223,7 @@ else
     echo "   and the prune session timer using" 
     echo "       'sudo systemctl start ticketweb-authsystem-prunesessions@$BUILD_ID.timer'."
     echo "   You may also want to enable the services to start on boot using"
-    echo "       sudo systemctl enable ticketweb-authsystem-server@$BUILD_ID.service'" 
+    echo "       sudo systemctl enable ticketweb-authsystem-server@$BUILD_ID.service" 
     echo "   and 'sudo systemctl enable ticketweb-authsystem-prunesessions@$BUILD_ID.timer'."
 fi
 

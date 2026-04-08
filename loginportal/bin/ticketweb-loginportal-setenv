@@ -109,7 +109,6 @@ if [ "$WITHIN_VENV" = "false" ]; then
     export CONFIG_DIR="/etc/ticketweb/loginportal"
     export DATA_DIR="/var/lib/ticketweb/$BUILD_ID/loginportal"
     export LOG_DIR="/var/log/ticketweb/$BUILD_ID/loginportal"
-    export SYSTEMD_STAGING_DIR="/usr/lib/systemd/system"
     export SYSTEMD_OS_DIR="/etc/systemd/system"
     export LIBEXEC_DIR="/usr/local/libexec/ticketweb/$BUILD_ID"
     export SRV_DIR="/srv/ticketweb/loginportal"
@@ -126,9 +125,6 @@ else
         export DATA_DIR="$HOME/.local/share/ticketweb/$BUILD_ID/loginportal"
         export LOG_DIR="$HOME/.local/log/ticketweb/$BUILD_ID/loginportal"
         export SYSTEMD_OS_DIR="$HOME/.config/systemd/user"
-        # Don't set SYSTEMD_STAGING_DIR for development mode since we won't be
-        # using a staging dir for systemd unit files in development mode. Instead, 
-        # we will just copy files directly into the user-level systemd directory directly.
 
         # Uses $HOME and $BUILD_ID
         export LIBEXEC_DIR="$HOME/.local/libexec/ticketweb/$BUILD_ID"
@@ -139,15 +135,7 @@ else
         export LOG_DIR="/var/log/ticketweb/$BUILD_ID/loginportal"
         export SYSTEMD_OS_DIR="/etc/systemd/system"
 
-        # Since files in the staging directory have to be linked fromto from the systemd system path,
-        # and the link names won't have the $BUILD_ID in them, 
-        # we can't use a staging directory that is unique to each build. 
-        # We are accepting that this will cause overwriting of unit files that
-        # have the same name accross different builds, but in the case of a version difference,
-        # the sysadmin can make custom unit files in /etc/systemd/system that 
-        # don't link to the new ones in the staging directory.
-        # 
-        export SYSTEMD_STAGING_DIR="/usr/lib/systemd/system"
+
         # Uses System path AND $BUILD_ID
         export LIBEXEC_DIR="/usr/local/libexec/ticketweb/$BUILD_ID"
     fi

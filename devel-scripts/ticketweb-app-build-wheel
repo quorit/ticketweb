@@ -67,7 +67,7 @@ PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
 # FIX 2: Dynamically locate the frontend module.
 # Because apps have different python package names (e.g. ticketweb_authsystem_server),
 # we use 'find' to locate it automatically instead of hardcoding the namespace.
-FE_DIR=$(find "$PACKAGE_ROOT/src" -maxdepth 2 -type d -name "frontend_module" 2>/dev/null | head -n 1)
+FE_DIR=$(find "$PACKAGE_ROOT/src" -maxdepth 2 -type d -name "frontend-module" 2>/dev/null | head -n 1)
 
 # --- Cleanup Function ---
 cleanup() {

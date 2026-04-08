@@ -1,0 +1,243 @@
+#!/bin/bash
+
+# Exit immediately if a command fails
+set -e
+
+
+
+
+echo "Starting TicketWeb Reporting App Build/Serve Script..."
+
+# 1. Pull in the environment
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-apps-reporting-setenv"
+
+# 2. Locate the frontend module
+echo "Locating package resources..."
+rt_interface_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_rt_interface_lib').joinpath('frontend-module'))")
+if [ ! -d "$rt_interface_fe_path" ]; then
+    echo "Error: Could not locate rt_interface frontend module at $rt_interface_fe_path"
+    exit 1
+fi
+
+authsystem_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('frontend-module'))")
+if [ ! -d "$authsystem_fe_path" ]; then
+    echo "Error: Could not locate authsystem frontend module at $authsystem_fe_path"
+    exit 1
+fi
+
+reporting_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_apps_reporting').joinpath('frontend-module'))")
+
+if [ ! -d "$reporting_fe_path" ]; then
+    echo "Error: Could not locate reporting app frontend module at $reporting_fe_path"
+    exit 1
+fi
+
+# 3. Load the Frontend Config Payload
+CONFIG_FILE="$CONFIG_DIR/frontend-config.json5"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: Frontend config file missing at $CONFIG_FILE."
+    echo "Please ensure the installation script completed successfully"
+    echo "and that the config file exists and has been configured."
+    exit 1
+fi
+
+echo "Loading frontend configuration into environment..."
+# Exporting this makes it available to Node/Vue during the build/serve process
+export VUE_APP_CONFIG_DATA=$(python3 -m json5 --as-json "$CONFIG_FILE")
+
+
+
+verify_npm_reqs()
+{
+    echo "Verifying Node.js, npm, and nvm environment..."
+    echo "Verifying Node.js environment..."
+
+    # 1. Check that node and npm exist globally or locally
+    if ! command -v node >/dev/null 2>&1; then
+        echo "Error: 'node' command not found. Node.js is required for this installation." >&2
+        exit 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "Error: 'npm' command not found. npm is required for this installation." >&2
+        exit 1
+    fi
+
+    echo "Found Node.js: $(node -v)"
+    echo "Found npm: $(npm -v)"
+
+    #   Strict nvm check
+    echo "Verifying nvm environment..."
+    
+    # Because this is a non-interactive bash script, the 'nvm' shell function 
+    # itself won't be loaded into memory. The most bulletproof way to check 
+    # if nvm is driving the environment is to check the path of the active node binary.
+    NODE_BIN_PATH=$(which node)
+    
+    if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
+        echo "Error: Development installation requires Node.js to be managed by nvm." >&2
+        echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
+        echo "Please ensure nvm is installed, loaded, and active in this terminal." >&2
+        exit 1
+    fi
+    
+    echo "nvm environment verified ($NODE_BIN_PATH)."
+}
+
+
+
+# ==============================================================================
+# DEVELOPMENT MODE
+# ==============================================================================
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "### DEVELOPMENT MODE ACTIVE ###"
+    if [ "$#" -ne 0 ]; then
+        echo "Error: In development mode, this script takes no arguments."
+        exit 1
+    fi
+
+    echo "Booting Vue development server with Hot Module Replacement..."
+    (
+        verify_npm_reqs
+        cd "$reporting_fe_path" || exit 1
+        # npm install is skipped as it was handled by the dev installer
+        # Because we are in development mode, all installing and linking of node modules should 
+        # have already been done by the install script at this point.
+        npm run serve
+    )
+
+# ==============================================================================
+# PRODUCTION MODE
+# ==============================================================================
+else
+    echo "### PRODUCTION MODE ACTIVE ###"
+    
+    # 1. Validate Arguments and Execution Context
+    if [ "$1" != "--non-root-user" ] || [ -z "$2" ]; then
+        echo "Usage: $0 --non-root-user <username>"
+        exit 1
+    fi
+    
+    BUILD_USER="$2"
+    
+    if [ "$EUID" -ne 0 ]; then
+        echo "Error: Production build must be run as root to manage privileges and deploy to $SRV_DIR."
+        exit 1
+    fi
+    
+    if ! id "$BUILD_USER" &>/dev/null; then
+        echo "Error: User '$BUILD_USER' does not exist."
+        exit 1
+    fi
+
+    # 2. Set up the Disposable Build Environment
+    TEMP_DIR=$(mktemp -d /tmp/tw-apps-reporting-build.XXXXXX)
+    echo "Created secure temporary build directory at $TEMP_DIR"
+    
+    # Ensure cleanup happens no matter how the script exits
+    trap 'echo "Cleaning up temporary build directory..."; rm -rf "$TEMP_DIR"' EXIT INT TERM
+
+    # Split into subdirectories
+    REQ_MODS_DIR="$TEMP_DIR/required-modules"
+    FE_MOD_DIR="$TEMP_DIR/front-end-module"
+    mkdir -p "$REQ_MODS_DIR" "$FE_MOD_DIR"
+
+    # Copy the modules into the staging areas
+    echo "Copying library modules to staging area..."
+    cp -r "$rt_interface_fe_path" "$REQ_MODS_DIR/rt_interface_lib"
+    cp -r "$authsystem_fe_path" "$REQ_MODS_DIR/authsystem_lib"
+    
+    echo "Copying main reporting frontend to staging area..."
+    cp -r "$reporting_fe_path/"* "$FE_MOD_DIR/"
+
+    # Transfer ownership of the copied files to the designated build user
+    chown -R "$BUILD_USER":"$BUILD_USER" "$TEMP_DIR"
+
+    # 3. The Restricted Build Execution
+    echo "Dropping privileges to user '$BUILD_USER' to safely compile Node assets..."
+    # We pass TEMP_DIR as an inline environment variable so we can use SINGLE QUOTES 
+    # for the bash payload, guaranteeing that $(which node) runs as the BUILD_USER.
+    sudo -E -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" bash -c '
+        # Re-establish the directory paths inside the child shell
+        REQ_MODS_DIR="$TEMP_DIR/required-modules"
+        FE_MOD_DIR="$TEMP_DIR/front-end-module"
+
+        verify_npm_reqs()
+        {
+            echo "Verifying Node.js, npm, and nvm environment..."
+            echo "Verifying Node.js environment..."
+
+            # 1. Check that node and npm exist globally or locally
+            if ! command -v node >/dev/null 2>&1; then
+                echo "Error: '\''node'\'' command not found. Node.js is required." >&2
+                exit 1
+            fi
+
+            if ! command -v npm >/dev/null 2>&1; then
+                echo "Error: '\''npm'\'' command not found. npm is required." >&2
+                exit 1
+            fi
+
+            echo "Found Node.js: $(node -v)"
+            echo "Found npm: $(npm -v)"
+
+            # Strict nvm check
+            echo "Verifying nvm environment..."
+            NODE_BIN_PATH=$(which node)
+    
+            if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
+                echo "Error: Production build requires Node.js to be managed by nvm." >&2
+                echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
+                exit 1
+            fi
+    
+            echo "nvm environment verified ($NODE_BIN_PATH)."
+        }
+        
+        
+        verify_npm_reqs
+        echo "Provisioning node modules for rt_interface_lib..."
+        
+        cd "$REQ_MODS_DIR/rt_interface_lib" || exit 1
+        npm install
+
+        echo "Provisioning node modules for authsystem_lib..."
+        cd "$REQ_MODS_DIR/authsystem_lib" || exit 1
+        npm install
+
+        echo "Provisioning node modules for main frontend module..."
+        cd "$FE_MOD_DIR" || exit 1
+        npm install
+        
+        echo "Injecting local modules into main frontend..."
+        # This replaces the npm link commands. It installs them directly 
+        # into the local node_modules folder from the staging paths.
+        npm install "$REQ_MODS_DIR/rt_interface_lib" "$REQ_MODS_DIR/authsystem_lib"
+
+        echo "Building the frontend assets with npm..."
+        npm run build
+
+    '
+    
+    # 4. Return to Root & Deploy
+    echo "Build complete. Resuming root privileges for deployment..."
+    
+    DIST_DIR="$FE_MOD_DIR/dist"
+    if [ ! -d "$DIST_DIR" ]; then
+        echo "Error: Build failed. 'dist' directory was not generated."
+        exit 1
+    fi
+
+    echo "Deploying compiled assets to $SRV_DIR..."
+    # Clear out the old version
+    rm -rf "${SRV_DIR:?}/"*
+    # Move the new version in
+    cp -r "$DIST_DIR/"* "$SRV_DIR/"
+    
+    # Secure the deployed assets (Standard web-readable permissions)
+    chown -R root:root "$SRV_DIR"
+    find "$SRV_DIR" -type d -exec chmod 755 {} \;
+    find "$SRV_DIR" -type f -exec chmod 644 {} \;
+
+    echo "### Production Deployment Successful! ###"
+fi

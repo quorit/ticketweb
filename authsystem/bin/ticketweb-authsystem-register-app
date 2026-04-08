@@ -33,7 +33,6 @@ echo "Registering application: $app_name..."
 tmpfile=$(mktemp -t applications.json.tmp.XXXXXXXXXX)
 cat "$apps_file" > "$tmpfile"
 
-# (Note: You can pass the file directly to jq instead of using cat)
 jq ".\"application_set\" |= (.+ [\"$app_name\"] | unique)" "$tmpfile" > "$apps_file"
 
 rm "$tmpfile"

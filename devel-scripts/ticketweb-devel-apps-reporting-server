@@ -1,0 +1,22 @@
+#!/bin/bash
+echo "### This script was invoked by the following command: "
+printf '%q ' "$0" "$@"
+echo "###"
+
+# Wrapper for ticketweb-loginportal-server
+
+if [ -z "$TICKETWEB_DEVEL_VENV_ROOT" ]; then
+    echo "Error: TICKETWEB_DEVEL_VENV_ROOT environment variable is not set." 
+    echo "You should probably set this somewhere, such as in your shell configuration"
+    echo "(e.g. .bashrc, .zshrc)."
+    exit 1
+fi
+
+
+# Activate the virtual environment
+source "$TICKETWEB_DEVEL_VENV_ROOT/bin/activate"
+
+#Run the server in the foreground
+ticketweb-apps-reporting-server
+
+

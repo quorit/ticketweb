@@ -12,7 +12,7 @@ echo "Starting TicketWeb Login Portal Build/Serve Script..."
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-loginportal-setenv"
 
 # 2. Locate the frontend module
-FRONTEND_MODULE_PATH=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('frontend_module'))")
+FRONTEND_MODULE_PATH=$(python -c "from importlib.resources import files; print(files('ticketweb_loginportal_server').joinpath('frontend-module'))")
 
 if [ ! -d "$FRONTEND_MODULE_PATH" ]; then
     echo "Error: Could not locate frontend_module at $FRONTEND_MODULE_PATH"
@@ -131,7 +131,7 @@ else
     echo "Dropping privileges to user '$BUILD_USER' to safely compile Node assets..."
     # We pass TEMP_DIR as an inline environment variable so we can use SINGLE QUOTES 
     # for the bash payload, guaranteeing that $(which node) runs as the BUILD_USER.
-    sudo -E -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" bash -c '
+    sudo -E -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" bash -c '
         verify_npm_reqs()
         {
             echo "Verifying Node.js, npm, and nvm environment..."
