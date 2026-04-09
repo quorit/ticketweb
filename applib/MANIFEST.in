@@ -3,12 +3,18 @@ prune src/ticketweb_applib/authsystem-fe-module/node_modules
 prune src/ticketweb_applib/authsystem-fe-module/dist
 recursive-exclude src/ticketweb_applib/authsystem-fe-module .env*
 prune src/ticketweb_applib/authsystem-fe-module/.venv
+prune src/ticketweb_applib/authsystem-fe-module/node_modules_dev_bak
+prune src/ticketweb_applib/authsystem-fe-module/package-lock.json.dev_bak
 
 
 prune src/ticketweb_applib/rt-fe-module/node_modules
 prune src/ticketweb_applib/rt-fe-module/dist
 recursive-exclude src/ticketweb_applib/rt-fe-module .env*
 prune src/ticketweb_applib/rt-fe-module/.venv
+prune src/ticketweb_applib/rt-fe-module/node_modules_dev_bak
+prune src/ticketweb_applib/rt-fe-module/package-lock.json.dev_bak
+
+
 
 # Explicitly includes the built frontend module,
 # while excluding the node_modules subdirectory, which is just a staging directory for the frontend module build process, 

@@ -1,8 +1,11 @@
-graft src/ticketweb_apps_reporting
-prune src/ticketweb_apps_reporting/frontend-module/node_modules
-prune src/ticketweb_apps_reporting/frontend-module/dist
-recursive-exclude src/ticketweb_apps_reporting/frontend-module .env*
-prune src/ticketweb_authsystem_apps_reporting/frontend-module/.venv
+graft src/ticketweb_apps_ithelp
+prune src/ticketweb_apps_ithelp/frontend-module/node_modules
+prune src/ticketweb_apps_ithelp/frontend-module/dist
+recursive-exclude src/ticketweb_apps_ithelp/frontend-module .env*
+prune src/ticketweb_apps_ithelp/frontend-module/.venv
+prune src/ticketweb_apps_ithelp/frontend-module/node_modules_dev_bak
+prune src/ticketweb_apps_ithelp/frontend-module/package-lock.json.dev_bak
+
 
 # Explicitly includes the built frontend module,
 # while excluding the node_modules subdirectory, which is just a staging directory for the frontend module build process, 
