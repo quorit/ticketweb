@@ -13,13 +13,13 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-apps-ithelp-sete
 
 # 2. Locate the frontend module
 echo "Locating package resources..."
-rt_interface_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_rt_interface_lib').joinpath('frontend-module'))")
+rt_interface_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_applib').joinpath('rt-fe-module'))")
 if [ ! -d "$rt_interface_fe_path" ]; then
     echo "Error: Could not locate rt_interface frontend module at $rt_interface_fe_path"
     exit 1
 fi
 
-authsystem_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('frontend-module'))")
+authsystem_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_applib').joinpath('authsystem-fe-module'))")
 if [ ! -d "$authsystem_fe_path" ]; then
     echo "Error: Could not locate authsystem frontend module at $authsystem_fe_path"
     exit 1

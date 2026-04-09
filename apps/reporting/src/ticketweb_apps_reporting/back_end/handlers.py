@@ -7,7 +7,7 @@ import os
 import sys
 import requests
 import html
-from ticketweb_rt_interface_lib.back_end.handlers import SubmitTicket
+from ticketweb_applib.rt_module.handlers import SubmitTicket
 from .config_data import config_data
 
 class BadRequest(Exception):

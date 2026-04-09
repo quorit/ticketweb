@@ -55,7 +55,7 @@ verify_npm_reqs()
 }
 
 
-TARGET_DIR="$git_repo_root/rt-interface"
+TARGET_DIR="$git_repo_root/applib"
 
 PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
 

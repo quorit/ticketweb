@@ -214,14 +214,14 @@ if [ "$DEVEL_MODE" = "true" ]; then
     echo "Development mode detected. Provisioning frontend development dependencies..."
     (
         # 1. Register RT Interface Library
-        rt_interface_fe_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_rt_interface_lib').joinpath('frontend-module'))")
+        rt_interface_fe_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_applib').joinpath('rt-fe-module'))")
         echo "RT interface front end module path located at: $rt_interface_fe_module_path"
         cd "$rt_interface_fe_module_path" || exit 1
         echo "Running npm link for RT interface..."
         npm link
 
         # 2. Register Auth System Library
-        authsystem_fe_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_authsystem_server').joinpath('frontend-module'))")
+        authsystem_fe_module_path=$(python -c "from importlib.resources import files; print(files('ticketweb_applib').joinpath('authsystem-fe-module'))")
         echo "Auth system front end module path located at: $authsystem_fe_module_path"
         cd "$authsystem_fe_module_path" || exit 1
         echo "Running npm link for Auth system..."
