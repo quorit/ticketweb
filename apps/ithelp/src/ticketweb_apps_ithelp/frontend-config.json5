@@ -76,10 +76,9 @@
 
    "devel_server": {
        // In development mode the proxies section
-       // ties the 'shared_data', 'server', and 'authsystem' paths 
+       // ties the 'server' and 'authsystem' paths 
        // (defined in the vue_app_path roots section) to back-end servers.
       "proxies": {
-          "shared_data": "http://127.0.0.1:8000/apps/ithelp",
           "app_server": "http://127.0.0.1:8003",
           "authsystem": "http://127.0.0.1:8001"
        },
