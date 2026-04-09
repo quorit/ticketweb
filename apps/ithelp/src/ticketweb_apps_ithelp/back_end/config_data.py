@@ -4,10 +4,7 @@ import os
 
 
 
-_etc_path = os.getenv("CONFIG_DIR", "/etc/ticketweb/apps/reporting")
-
-
-
+_etc_path = os.getenv("CONFIG_DIR", "/etc/ticketweb/apps/ithelp")
 
 
 

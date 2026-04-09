@@ -1,0 +1,156 @@
+#!/bin/bash
+# ticketweb-apps-ithelp-setenv - Initializes the deployment environment
+
+
+PACKAGE_NAME="ticketweb-apps-ithelp-WALTONM"
+
+
+
+# 1. Magic incantation to find the directory where THIS script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+
+# Assume the .env file is in the parent directory of the scripts folder
+ENV_FILE="$SCRIPT_DIR/../.env"
+
+
+if [ -n "$VIRTUAL_ENV" ]; then
+    export WITHIN_VENV="true"
+else
+    export WITHIN_VENV="false"
+fi
+
+if [ -f "$ENV_FILE" ]; then
+    export ENV_FILE_EXISTS="true"
+else
+    export ENV_FILE_EXISTS="false"
+fi
+
+
+
+
+
+if [ "$WITHIN_VENV" = "true" ]; then
+    if [ "$ENV_FILE_EXISTS" = "false" ]; then
+        echo "Error: Running within a Python virtual environment but no .env file found at $ENV_FILE." >&2
+        echo "An .env file is required when running within a virtual environment to ensure proper configuration." >&2
+        exit 1
+    else
+        # load the .env file
+        # 'set -a' forces all variables defined in the file to be exported
+        set -a
+        source "$ENV_FILE"
+        set +a
+        if [ -z "$BUILD_ROOT" ] || [ -z "$BUILD_ID" ]; then
+            echo "Error: Both BUILD_ROOT and BUILD_ID must be set in the .env file." >&2
+            exit 1
+        fi
+        if [ "$BUILD_ID" = "global" ]; then
+            echo "Error: BUILD_ID cannot be set to 'global' when running within a virtual environment." >&2
+            exit 1
+        fi
+    fi
+else
+    echo "Not running within a Python virtual environment. No .env file will be loaded."
+    export BUILD_ROOT=""
+    export BUILD_ID="global"
+fi
+
+
+
+
+
+# Check if the Effective User ID is 0 (root)
+if [ "$EUID" -eq 0 ]; then
+    export DEVEL_MODE="false"  # Running as root (e.g., via sudo)
+    echo "Running in production mode (as root)."
+else
+    export DEVEL_MODE="true"   # Running as a standard user
+    echo "Running in development mode (not as root)."
+fi
+
+
+if [ "$DEVEL_MODE" = "true" ] && [ "$WITHIN_VENV" = "false" ]; then
+    echo "Development mode not supported outside of a virtual environment." >&2
+    exit 1
+fi
+
+# Ask Python to check the package metadata
+is_editable=$(python -c "
+import json, sys
+from importlib.metadata import distribution, PackageNotFoundError
+try:
+    dist = distribution('$PACKAGE_NAME')
+    direct_url = dist.read_text('direct_url.json')
+    if direct_url and json.loads(direct_url).get('dir_info', {}).get('editable'):
+        print('true')
+    else:
+        print('false')
+except PackageNotFoundError:
+    print('false')
+")
+
+
+if [ "$is_editable" = "false" ] && [ "$DEVEL_MODE" = "true" ]; then
+    echo "Error: The package $PACKAGE_NAME is not installed in editable mode, but we are running in development mode." >&2
+    echo "Please re-install the package in editable mode to proceed." >&2
+    exit 1
+elif [ "$is_editable" = "true" ] && [ "$DEVEL_MODE" = "false" ]; then
+    echo "Error: The package $PACKAGE_NAME is installed in editable mode, but we are running in production mode." >&2
+    echo "This is not an allowed configuration for production. Please re-install the package without editable mode for production deployments." >&2
+fi
+
+
+
+
+# 4. Branch paths based on install type
+if [ "$WITHIN_VENV" = "false" ]; then
+    # --- STATE 1: System-wide production install ---
+    # (Root user, NO virtual environment)
+    export CONFIG_DIR="/etc/ticketweb/apps/ithelp"
+    export DATA_DIR="/var/lib/ticketweb/$BUILD_ID/apps/ithelp"
+    export LOG_DIR="/var/log/ticketweb/$BUILD_ID/apps/ithelp"
+    export SYSTEMD_OS_DIR="/etc/systemd/system"
+    export LIBEXEC_DIR="/usr/local/libexec/ticketweb/$BUILD_ID"
+    export SRV_DIR="/srv/ticketweb/apps/ithelp"
+
+else
+    # --- VIRTUAL ENVIRONMENT INSTALLS ---
+    export CONFIG_DIR="$BUILD_ROOT/etc/apps/ithelp"
+    export SRV_DIR="$BUILD_ROOT/srv/apps/ithelp"
+    
+    
+    if [ "$DEVEL_MODE" = "true" ]; then
+        # --- STATE 2: Developer Install ---
+        # (Standard user, Inside a Venv)
+        export DATA_DIR="$HOME/.local/share/ticketweb/$BUILD_ID/apps/ithelp"
+        export LOG_DIR="$HOME/.local/log/ticketweb/$BUILD_ID/apps/ithelp"
+        export SYSTEMD_OS_DIR="$HOME/.config/systemd/user"
+        # Don't set SYSTEMD_STAGING_DIR for development mode since we won't be
+        # using a staging dir for systemd unit files in development mode. Instead, 
+        # we will just copy files directly into the user-level systemd directory directly.
+
+        # Uses $HOME and $BUILD_ID
+        export LIBEXEC_DIR="$HOME/.local/libexec/ticketweb/$BUILD_ID"
+    else
+        # --- STATE 3: Production Venv Install ---
+        # (Root user, Inside a Venv)
+        export DATA_DIR="/var/lib/ticketweb/$BUILD_ID/apps/ithelp"
+        export LOG_DIR="/var/log/ticketweb/$BUILD_ID/apps/ithelp"
+        export SYSTEMD_OS_DIR="/etc/systemd/system"
+
+        # 
+        # Uses System path AND $BUILD_ID
+        export LIBEXEC_DIR="/usr/local/libexec/ticketweb/$BUILD_ID"
+    fi
+fi
+
+
+
+
+
+
+
+
+
+
+

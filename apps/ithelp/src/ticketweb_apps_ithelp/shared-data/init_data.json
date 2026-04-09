@@ -1,0 +1,229 @@
+
+
+{
+    "xlat": {
+        "registrar": "University Registar",
+        "reg_assist": "Assistant to the University Registrar",
+        "srv_strategy": "Director of Service Strategy and Operations",
+        "finance_admin": "Director of Finance and Aministrative Operations",
+        "rec_ser": "Records and Services",
+        "awd": "Student Awards",
+        "sis": "Student Information Systems",
+        "aur": "Associate University Registrar",
+        "bus_op_analysis": "Business Operations and Analysis",
+        "donor_relations": "Donor Relations",
+        "sen_awd_officer": "Senior Awards Officer",
+        "oop_loans_renewable": "Out of Province Loan Programs and Renewable Rewards",
+        "fin_aid": "Financial Aid",
+        "ba": "Business Analyst",
+        "awd_officer":  "Awards Officer",
+        "stud_resource_assist": "Student Resource Assistant",
+        "in_course": "In-Course",
+        "admission_awards": "Admission Awards",
+        "oop_loans": "Out of Province Loan Programs",
+        "us_loans": "US Loans",
+        "osap": "OSAP Programs",
+        "osap_burs": "OSAP Bursary Programs",
+        "osap_loan": "OSAP and Loan Programs",
+        "loan_progs": "Loan Programs",
+        "stud_client": "Student Client Services Representative",
+        "stud_financials": "Student Financials",
+        "director": "Director",
+        "stud_acc_sp": "Student Account Specialist",
+        "stud_acc_rep": "Student Account Representative",
+        "stud_acc_admin": "Student Account Administrator",
+        "fin_proc_manage": "Finance and Process Management Analyst",
+        "stud_recs": "Student Records",
+        "manager": "Manager",
+        "tm_ld_reg_fees": "Team Lead Regstration and Fees",
+        "reg_fees_admin": "Registration and Fees Administrator",
+        "stud_srv_conv": "Student Services and Convocation",
+        "sen_clerk_srv": "Senior Clerk Services",
+        "conv_comm_admin": "Convocation and Communications Administrator",
+        "srv_info_assist": "Service and Information Assistant",
+        "trans_assist": "Transcript Assistant",
+        "tech_support_pid": "Tech Support Assistant (Photo ID)",
+        "exams_teach_assess": "Exams and Teaching Assessment",
+        "exams_off": "Exams Office",
+        "exam_admin": "Exam Administrator",
+        "exam_assist": "Exam Assistant",
+        "teach_assess": "Teaching Assessment",
+        "crse_eval_admin": "Course Evaluation Administrator",
+        "student_info_analysis": "Student Information and Analysis",
+        "stud_data": "Student Data",
+        "sen_sys_analyst": "Senior Systems Analyst",
+        "sis_analyst": "Student Information Analyst",
+        "administration": "Administration",
+        "deg_aud_coord": "Degree Audit Coordinator",
+        "campus_support": "Campus Solutions Support Analyst",
+        "tt": "Timetabling",
+        "lead_tt_analyst": "Lead Timetable Analyst",
+        "tt_admin": "Timetabling Administrator",
+        "proj_analysis": "Projects and Analysis",
+        "projects": "Projects",
+        "analysis": "Analysis",
+        "it_support": "IT Support",
+        "jr_ba": "Junior Business Analyst",
+        "tech_spec": "Technical Support Specialist",
+        "tech_web": "Technical/Web Support",
+        "hybrid": "Hybrid",
+        "in_office": "100% In-Office",
+        "remote": "100% Remote",
+        "gor100": "RM 100",
+        "gor110": "RM 110",
+        "gor125": "RM 125",
+        "gor225": "RM 225",
+        "has_phone_not_required": "New employee already has an existing personal phone extension but no longer requires it in their new role.",
+        "has_phone_keep": "New employee already has an existing personal phone extension and will continue to require it in their new role.",
+        "no_phone_not_required": "New employee does not have an existing personal phone extension and will not require one.",
+        "no_phone_new": "New employee does not have an existing personal phone extension but will require one.",
+        "hw_choice1": "Desktop PC in office with 2 monitors and desktop PC at home with 1 monitor",
+        "hw_choice2": "Laptop with docking station, two monitors in office, and one monitor at home",
+        "hw_choice3": "Desktop PC with 2 monitors",
+        "hw_choice4": "Laptop with docking station and 2 monitors",
+        "transcript_prnt": "Transcript printer",
+        "frontdsk_prnt": "Frontdesk printer",
+        "eventuse_ml": "eventuser-l",
+        "timetabl_ml": "timetabl-l",
+        "psautodeprorpt_ml": "PSAUtoDeproRpt-DL",
+        "rm125_hp_lj_p3015": "Room 125 HP LaserJet P3015",
+        "rm110_hp_lj_600_m601": "Room 110 HP LaserJet 600 M601",
+        "rm225_hp_lj_600_m601": "Room 225 HP LaserJet 600 M601"
+    },
+    "org_tree": {
+        "registrar": [],
+        "reg_assist": [],
+        "srv_strategy": [],
+        "finance_admin":[],
+        "awd": {
+            "aur": [],
+            "bus_op_analysis": {
+                "manager": [] 
+            },
+            "donor_relations": {
+                "sen_awd_officer": []
+            },
+            "oop_loans_renewable": {
+                "awd_officer": []
+            },
+            "fin_aid": {
+                "director": [],
+                "ba": [],
+                "awd_officer": ["in_course","admission_awards","oop_loans","us_loans","osap"],
+                "stud_resource_assist": ["admission_awards", "in_course"]
+            },
+            "osap_loan":{
+                "sen_awd_officer": [],
+                "awd_officer": ["osap", "osap_burs" ],
+                "stud_resource_assist": ["loan_progs"],
+                "stud_client": []
+            }
+        },
+        "rec_ser": {
+            "aur": [],
+            "stud_financials": {
+                "stud_acc_sp": [],
+                "stud_acc_admin": [],
+                "fin_proc_manage": [],
+                "stud_acc_rep": []
+            },
+            "stud_recs": {
+                "manager": [],
+                "tm_ld_reg_fees": [],
+                "reg_fees_admin": []
+            },
+            "exams_teach_assess":{
+                "manager": [],
+                "exams_off": {
+                    "exam_admin": [],
+                    "exam_assist": []
+                },
+                "teach_assess": {
+                    "crse_eval_admin": []
+                }
+                
+            },
+            "stud_srv_conv": {
+                "manager":[],
+                "sen_clerk_srv": [],
+                "conv_comm_admin": [],
+                "srv_info_assist": [],
+                "trans_assist": [],
+                "tech_support_pid": [],
+                "stud_client": []
+
+            }
+        },
+        "sis": {
+            "aur": [],
+            "student_info_analysis": {
+                "director": [],
+                "stud_data": {
+                    "sen_sys_analyst": [],
+                    "sis_analyst": []
+                },
+                "administration": {
+                    "deg_aud_coord": [],
+                    "campus_support": []
+                }
+    
+            },
+            "proj_analysis": {
+                "manager": [],
+                "projects": {
+                    "ba": [],
+                    "jr_ba": []
+                },
+                "it_support": {
+                    "tech_spec": [],
+                    "tech_web": []
+                }
+            },            
+            "tt": {
+                "manager": [],
+                "lead_tt_analyst": [],
+                "tt_admin": []
+            }
+        }
+        
+    },
+    "work_models":[
+        "hybrid",
+        "in_office",
+        "remote"
+    ],
+    "rooms": [
+        "gor110",
+        "gor125",
+        "gor225"
+    ],
+    "phone_extensions":[
+        "has_phone_not_required",
+        "has_phone_keep",
+        "no_phone_not_required",
+        "no_phone_new"
+    ],
+    "hw_choices":{
+        "hybrid": [
+            "hw_choice1",
+            "hw_choice2"
+        ],
+        "other":[
+            "hw_choice3",
+            "hw_choice4"
+        ]
+
+    },
+    "supp_prnts":[
+        "transcript_prnt",
+        "frontdsk_prnt",
+        "rm125_hp_lj_p3015",
+        "rm110_hp_lj_600_m601",
+        "rm225_hp_lj_600_m601"
+    ],
+    "supp_mls":[
+        "eventuse_ml",
+        "timetabl_ml",
+        "psautodeprorpt_ml"
+    ]
+}

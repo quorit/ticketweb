@@ -6,10 +6,10 @@ set -e
 
 
 
-echo "Starting TicketWeb Reporting App Build/Serve Script..."
+echo "Starting TicketWeb IT Help App Build/Serve Script..."
 
 # 1. Pull in the environment
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-apps-reporting-setenv"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-apps-ithelp-setenv"
 
 # 2. Locate the frontend module
 echo "Locating package resources..."
@@ -25,10 +25,10 @@ if [ ! -d "$authsystem_fe_path" ]; then
     exit 1
 fi
 
-reporting_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_apps_reporting').joinpath('frontend-module'))")
+ithelp_fe_path=$(python -c "from importlib.resources import files; print(files('ticketweb_apps_ithelp').joinpath('frontend-module'))")
 
-if [ ! -d "$reporting_fe_path" ]; then
-    echo "Error: Could not locate reporting app frontend module at $reporting_fe_path"
+if [ ! -d "$ithelp_fe_path" ]; then
+    echo "Error: Could not locate ithelp app frontend module at $ithelp_fe_path"
     exit 1
 fi
 
@@ -44,8 +44,8 @@ fi
 echo "Loading frontend configuration into environment..."
 # Exporting this makes it available to Node/Vue during the build/serve process
 export VUE_APP_CONFIG_DATA=$(python3 -m json5 --as-json "$CONFIG_FILE")
-
 export VUE_APP_SYSTEM_DATA_DIR="$DATA_DIR"
+
 
 verify_npm_reqs()
 {
@@ -99,7 +99,7 @@ if [ "$DEVEL_MODE" = "true" ]; then
     echo "Booting Vue development server with Hot Module Replacement..."
     (
         verify_npm_reqs
-        cd "$reporting_fe_path" || exit 1
+        cd "$ithelp_fe_path" || exit 1
         # npm install is skipped as it was handled by the dev installer
         # Because we are in development mode, all installing and linking of node modules should 
         # have already been done by the install script at this point.
@@ -131,7 +131,7 @@ else
     fi
 
     # 2. Set up the Disposable Build Environment
-    TEMP_DIR=$(mktemp -d /tmp/tw-apps-reporting-build.XXXXXX)
+    TEMP_DIR=$(mktemp -d /tmp/tw-apps-ithelp-build.XXXXXX)
     echo "Created secure temporary build directory at $TEMP_DIR"
     
     # Ensure cleanup happens no matter how the script exits
@@ -147,8 +147,8 @@ else
     cp -r "$rt_interface_fe_path" "$REQ_MODS_DIR/rt_interface_lib"
     cp -r "$authsystem_fe_path" "$REQ_MODS_DIR/authsystem_lib"
     
-    echo "Copying main reporting frontend to staging area..."
-    cp -r "$reporting_fe_path/"* "$FE_MOD_DIR/"
+    echo "Copying main ithelp frontend to staging area..."
+    cp -r "$ithelp_fe_path/"* "$FE_MOD_DIR/"
 
     # Transfer ownership of the copied files to the designated build user
     chown -R "$BUILD_USER":"$BUILD_USER" "$TEMP_DIR"

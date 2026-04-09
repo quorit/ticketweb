@@ -1,17 +1,22 @@
-// const { defineConfig } = require('@vue/cli-service')
 const path = require("path")
-const config_data = JSON.parse(process.env.VUE_APP_CONFIG_DATA);
 
+
+
+const config_data = JSON.parse(process.env.VUE_APP_CONFIG_DATA);
 const express = require("express")
 
 
 
+
 module.exports = {
+
+   parallel: false,
+
   transpileDependencies: [
     'vuetify'
   ],
   publicPath: config_data.vue_app_path_roots.frontend,
-  // outputDir: path.resolve(process.env.VUE_APP_VENV_ROOT,"srv/ticketweb/applications/reporting/frontend"),
+  // outputDir: path.resolve(process.env.VUE_APP_VENV_ROOT,"srv/ticketweb/applications/ithelp/frontend"),
   devServer: (process.env.NODE_ENV=='development')?{
     port: config_data.devel_server.port,
     proxy: {
@@ -29,7 +34,8 @@ module.exports = {
             pathRewrite: {
                ['^' + config_data.vue_app_path_roots.app_server]: '/'
             }
-         }
+         },
+         
 
 
    },
@@ -43,9 +49,6 @@ module.exports = {
       
       return middlewares;
     }
-
-
-
   }:{}
   // options...
 }
