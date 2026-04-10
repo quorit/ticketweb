@@ -60,7 +60,7 @@ fi
 
 
 # Check if the Effective User ID is 0 (root)
-if [ "$EUID" -eq 0 ]; then
+if [ "$EUID" -lt 1000 ]; then
     export DEVEL_MODE="false"  # Running as root (e.g., via sudo)
     echo "Running in production mode (as root)."
 else
