@@ -218,10 +218,11 @@ def _get_user_data(req,config_data):
     if receive.status_code != 200:
             raise Exception("Failed commmunication with token server")
     pub_key=receive.text
-
+    print ("Hello DINA")
     req_auth_hdr = req.get_header('Authorization')
     if not req_auth_hdr:
         raise BadRequestMissingHeader('Authorization')
+    print ("HELLO EINA")
     if len(req_auth_hdr) > 2048:
         raise BadRequestHeaderTooBig()
     re_pattern = r"^Bearer [-a-zA-Z0-9._]+$"
@@ -237,10 +238,15 @@ def _get_user_data(req,config_data):
         raise falcon.HTTPUnauthorized(
             description="JWT token has expired"
         )
+        
     except jwt.exceptions.InvalidTokenError as e:
+        print ("BAD TOKEN")
+        descr = "Invalid Token Error: " + str(e)
+        print (descr)
         raise falcon.HTTPBadRequest(
-            description="Invalid Token Error: " + str(e)
+            description=descr
         )
+    print ("HELLO YINA")
     if not isinstance(req_decoded["sub"],str):
         raise falcon.HTTPBadRequest(
             description="'sub' field in jwt data does not have string type"
@@ -306,6 +312,7 @@ class SubmitTicket():
 
     def on_post(self,req,resp):
         def get_req_content(req,tempdir):
+
             # Might want to test that content isn't too big here
             if not req.content_type.startswith(falcon.MEDIA_MULTIPART):
                 raise BadRequestContentNotMultipart()
@@ -348,15 +355,16 @@ class SubmitTicket():
                                     time.gmtime(time.mktime(time.strptime(due_date + " 23:59:59",
                                     "%Y-%m-%d %H:%M:%S"))))
     # need to throw bad requestrs if the due date is unparseable.
-
+        print ("HELLO AINA")
         user_data = _get_user_data(req,self.config_data)
+        print ("HELLO BINA")
         #For other form types this comes out of the request
         
 
         _rt_api_token = _get_rt_api_token(self.config_data)
         rt_path_base = self.config_data["rt"]["path_base"]
         auth_string = "Token " + _rt_api_token
-
+        print ("HELLO TINA")
         headers = {
             "Authorization": auth_string
         }
@@ -365,10 +373,9 @@ class SubmitTicket():
         mail_enc = urllib.parse.quote(mail)
         rt_path= rt_path_base + "REST/2.0/"
         print (rt_path + "user/" + mail_enc)
-        receive = requests.get(rt_path + "user/" + mail_enc,headers=headers)
-        
+        receive = requests.get(rt_path + "user/" + mail_enc,headers=headers,verify=False)
+        print ("HELLO MINA")
         current_user_name = None
-
         if receive.status_code == 200:
             current_user_name = mail_enc
         elif receive.status_code == 404:
@@ -399,7 +406,8 @@ class SubmitTicket():
             url = rt_path+"user/"+current_user_name
             receive = requests.put(url,
                                    headers=headers,
-                                   json=user_fields)
+                                   json=user_fields,
+                                   verify=False)
         
 
 
@@ -487,7 +495,7 @@ class SubmitTicket():
 
                 receive = requests.post(rt_path + "ticket",
                                         headers=headers,
-                                        data=mp_encoder)
+                                        data=mp_encoder, verify=False)
 
 
         if receive.status_code != 201:

@@ -2,7 +2,12 @@
    // rt section contains info needed to communicate with the rt system
    "rt": {
             // path_base is the url root of the rt system.
-            "path_base": "http://127.0.0.1:8020/rt/",
+            // For a local connection it might look something like:
+            // "path_base": "http://127.0.0.1/rt/",
+            // For a remote connection it might look somethin like:
+            // "path_base": "https://ouritstor.ad.queensu.ca/rt/"
+            "path_base": "https://ouritstor.ad.queensu.ca/rt/",
+
             // queue is the queue that submitted tickets will go in
             "queue": "Development",
             // api token that rt requires for authentication and authorization.
@@ -11,7 +16,7 @@
    // GET calls to the following URL (belonging to the authentication server) give us a public key
    // by which we can verify application tokens given to the app by the front end,
    // originally served to the front end from the authentication server.
-   "pub_key_url": "http://127.0.0.1:8001/pubkeys/reporting",
+   "pub_key_url": "http://127.0.0.1:8001/pubkeys/ithelp",
    //This is the port bind for the application server. 
    // We should only allow local connections the port shouldn't conflict with other ones
    // already in use. 

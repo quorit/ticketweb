@@ -228,7 +228,7 @@ def _get_data_path():
 
 
 def _get_shared_data():
-    file = os.path.join(_get_data_path,"init_data.json")
+    file = os.path.join(_get_data_path(),"init_data.json")
     f = open(file,"r")
     shared_data = json.load(f)
     f.close()

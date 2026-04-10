@@ -2,7 +2,11 @@
    // rt section contains info needed to communicate with the rt system
    "rt": {
             // path_base is the url root of the rt system.
-            "path_base": "http://127.0.0.1:8020/rt/",
+            // For a local connection it might look something like:
+            // "path_base": "http://127.0.0.1/rt/",
+            // For a remote connection it might look somethin like:
+            // "path_base": "https://ouritstor.ad.queensu.ca/rt/"
+            "path_base": "https://ouritstor.ad.queensu.ca/rt/",
             // queue is the queue that submitted tickets will go in
             "queue": "Development",
             // api token that rt requires for authentication and authorization.

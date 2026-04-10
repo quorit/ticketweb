@@ -14,6 +14,7 @@ class BadRequest(Exception):
     def __init__(self,message,status):
        self._message = message
        self.status = status
+       print (message)
 
     def response_body(self):
        result = {
@@ -237,6 +238,7 @@ def _get_shared_data():
     f = open(file,"r")
     shared_data = json.load(f)
     f.close()
+
     return shared_data
 
 

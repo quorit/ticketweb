@@ -1,6 +1,6 @@
 {
-   //app_name should always be reporting. I don't think this should be required.
-   "app_name": "reporting",
+   //app_name should always be ithelp. I don't think this should be required.
+   "app_name": "ithelp",
    
 
    // In devel mode,
