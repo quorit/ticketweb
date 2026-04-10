@@ -89,7 +89,11 @@ fi
 # Ensure the core directories exist
 mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$LIBEXEC_DIR" "$SYSTEMD_OS_DIR" "$SRV_DIR"
 
-
+if [ "$DEVEL_MODE" = "false" ]; then
+   echo "Production mode: Securing data dir and logging directory..."
+   chown ticketweb_loginportal:ticketweb_loginportal "$DATA_DIR" "$LOG_DIR"
+   chmod 770 "$DATA_DIR" "$LOG_DIR"
+fi
 
 
 # Ask the active venv's Python for the exact file path of the skeleton config file for the backend server, 
