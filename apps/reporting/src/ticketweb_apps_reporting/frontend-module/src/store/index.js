@@ -10,7 +10,7 @@ Vue.use(Vuex)
 
 const config_data = JSON.parse(process.env.VUE_APP_CONFIG_DATA);
 
-const shared_data_path = config_data.vue_app_path_roots.shared_data;
+const shared_data_path = config_data.vue_app_path_roots.app + "shared-data/";
 
 export default new Vuex.Store({
   state: {

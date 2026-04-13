@@ -1,8 +1,4 @@
 {
-   //app_name should always be ithelp. I don't think this should be required.
-   "app_name": "ithelp",
-   
-
    // In devel mode,
    // vue_app_path_roots might look like:
    // "vue_app_path_roots": {
@@ -27,9 +23,7 @@
    // sessions
    // and fetches app tokens from the auth system.
    "vue_app_path_roots": {
-      "frontend": "/app/frontend/",
-      "shared_data": "/app/shared-data/",
-      "app_server": "/app/server/",
+      "app": "/app/",
       "authsystem": "/authsystem-server/"
    },
    "banner": {
@@ -78,10 +72,14 @@
        // In development mode the proxies section
        // ties the 'server' and 'authsystem' paths 
        // (defined in the vue_app_path roots section) to back-end servers.
-      "proxies": {
-          "app_server": "http://127.0.0.1:8003",
-          "authsystem": "http://127.0.0.1:8001"
-       },
+      
+
+
+      // "proxies": {
+      //    "app_server": "http://127.0.0.1:8003",
+      //    "authsystem": "http://127.0.0.1:8001"
+      // },
+      "authsystem_url": "http://127.0.0.1:8001",
 
        // the port is the port that the front end development web server will listen on.
        "port": "8081"

@@ -11,16 +11,15 @@ module.exports = {
   transpileDependencies: [
     'vuetify'
   ],
-  publicPath: config_data.vue_app_path_roots.frontend,
-  // outputDir: path.resolve(process.env.VUE_APP_VENV_ROOT,"srv/ticketweb/loginportal/frontend"),
+  publicPath: config_data.vue_app_path_root + "frontend/",
   devServer: (process.env.NODE_ENV=='development')?{
-    port: config_data.devel_server.port,
+    port: config_data.devel_port,
     proxy: {
-
-         ['^' + config_data.vue_app_path_roots.server]: {
-            target: config_data.devel_server.proxies.server,
+          
+         ['^' + config_data.vue_app_path_root + "server/"]: {
+            target: "http://127.0.0.1:"+process.env.VUE_APP_BE_PORT_NUMBER+"/",
             pathRewrite: {
-               ['^' + config_data.vue_app_path_roots.server]: '/'
+               ['^' + config_data.vue_app_path_root + "server/"]: '/'
             }
          }
 

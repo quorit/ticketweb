@@ -213,8 +213,10 @@ class BadRequestContentNotMultipart(BadRequest):
 
 
 
-def _get_user_data(req,config_data):
-    receive = requests.get(config_data["pub_key_url"])
+def _get_user_data(req,config_data, invoker_app):
+    pubkey_url = config_data["authsystem_url"] + "pubkeys/" + invoker_app
+    print (pubkey_url)
+    receive = requests.get(pubkey_url)
     if receive.status_code != 200:
             raise Exception("Failed commmunication with token server")
     pub_key=receive.text
@@ -296,7 +298,8 @@ def _get_rt_api_token(config_data):
 
 
 class SubmitTicket():
-    def __init__(self,report_type,get_subject,get_ticket_content,config_data,request_type_field_name="RequestType"):
+    def __init__(self,invoker_app,report_type,get_subject,get_ticket_content,config_data,request_type_field_name="RequestType"):
+        self.invoker_app = invoker_app
         self.report_type=report_type
         self.get_subject=get_subject
         self.get_ticket_content=get_ticket_content
@@ -304,6 +307,7 @@ class SubmitTicket():
         self.request_type_field_name=request_type_field_name
 
     
+
 
 
 
@@ -356,7 +360,7 @@ class SubmitTicket():
                                     "%Y-%m-%d %H:%M:%S"))))
     # need to throw bad requestrs if the due date is unparseable.
         print ("HELLO AINA")
-        user_data = _get_user_data(req,self.config_data)
+        user_data = _get_user_data(req,self.config_data,self.invoker_app)
         print ("HELLO BINA")
         #For other form types this comes out of the request
         

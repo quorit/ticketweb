@@ -13,7 +13,7 @@
 
     // The "bind" field specifies the address and port that the server should bind to. The format is "address:port".
     // For example, ":8001" means that the server will listen on all available network interfaces on port 8001.
-    "bind": ":8001",
+    "port": "8001",
 
     // The "login_portals" field contains configuration for both a microsoft azure portal and a ticketweb development portal,
     // which is a mock portal useful for development.
@@ -28,9 +28,13 @@
            "tenant_id": "d61ecb3b-38b1-42d5-82c4-efb2838b925c"
        },
        "ticketweb": {
-               // The "signing_key_url" field specifies the URL where the server can retrieve the public key 
+               // The "portal_url" field specifies the URL where the server can retrieve the public key 
                // used to verify the signatures of tokens issued by the ticketweb development portal.
-               "signing_key_url": "http://127.0.0.1:8004/pubkey"
+               // If the login portal is running locally you will probably use it's internal address like
+               // http://127.0.0.0:4001/,
+               // otherwise it will be an external url like,
+               // "https://ourvmlindev-1.ad.queensu.ca/ticketweb_devel_prod_test/loginportal/
+               "portal_url": "https://ourvmlindev-1.ad.queensu.ca/ticketweb_devel_prod_test/loginportal/"
        }
     }
 }

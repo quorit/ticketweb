@@ -10,24 +10,24 @@ module.exports = {
   transpileDependencies: [
     'vuetify'
   ],
-  publicPath: config_data.vue_app_path_roots.frontend,
+  publicPath: config_data.vue_app_path_roots.app + "frontend/",
   // outputDir: path.resolve(process.env.VUE_APP_VENV_ROOT,"srv/ticketweb/applications/reporting/frontend"),
   devServer: (process.env.NODE_ENV=='development')?{
     port: config_data.devel_server.port,
     proxy: {
 
          ['^' + config_data.vue_app_path_roots.authsystem]: {
-            target: config_data.devel_server.proxies.authsystem,
+            target: config_data.devel_server.authsystem_url,
             pathRewrite: {
                ['^' + config_data.vue_app_path_roots.authsystem]: '/'
             }
          },
 
 
-         ['^' + config_data.vue_app_path_roots.app_server]: {
-            target: config_data.devel_server.proxies.app_server,
+         ['^' + config_data.vue_app_path_roots.app + "server/"]: {
+            target: "http://127.0.0.1:" + process.env.VUE_APP_BE_PORT_NUMBER+"/",
             pathRewrite: {
-               ['^' + config_data.vue_app_path_roots.app_server]: '/'
+               ['^' + config_data.vue_app_path_roots.app + "server/"]: '/'
             }
          }
 
@@ -39,7 +39,8 @@ module.exports = {
       }
 
       // Maps the URL path '/my-data' to a folder on your hard drive
-      devServer.app.use(config_data.vue_app_path_roots.shared_data, express.static(process.env.VUE_APP_SYSTEM_DATA_DIR));
+      const sharedDataPath = config_data.vue_app_path_roots_app + 
+      devServer.app.use(config_data.vue_app_path_roots.app + "shared-data/", express.static(process.env.VUE_APP_SYSTEM_DATA_DIR));
       
       return middlewares;
     }

@@ -471,7 +471,7 @@ class SubmitTicketOnboarding(SubmitTicket):
             ]
             result = "<br/>".join([("<h4>" + section["header"] +"</h4>" + section["render_f"]() if section.get("condition",True) else "") for section in sections ])
             return result
-        super().__init__("onboarding",get_subject,get_ticket_content,config_data)
+        super().__init__("ithelp","onboarding",get_subject,get_ticket_content,config_data)
 
 
 

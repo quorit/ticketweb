@@ -3,9 +3,6 @@
 # Exit immediately if a command fails
 set -e
 
-
-
-
 echo "Starting TicketWeb IT Help App Build/Serve Script..."
 
 # 1. Pull in the environment
@@ -44,6 +41,19 @@ fi
 echo "Loading frontend configuration into environment..."
 # Exporting this makes it available to Node/Vue during the build/serve process
 export VUE_APP_CONFIG_DATA=$(python3 -m json5 --as-json "$CONFIG_FILE")
+
+
+# Load the Backend Config Payload
+BE_CONFIG_FILE="$CONFIG_DIR/app-server-config.json5"
+if [ ! -f "$BE_CONFIG_FILE" ]; then
+    echo "Error: Server config file missing at $BE_CONFIG_FILE."
+    echo "Please ensure the installation script completed successfully."
+    exit 1
+fi
+
+
+
+
 export VUE_APP_SYSTEM_DATA_DIR="$DATA_DIR"
 
 
@@ -96,7 +106,30 @@ if [ "$DEVEL_MODE" = "true" ]; then
         exit 1
     fi
 
-    echo "Booting Vue development server with Hot Module Replacement..."
+    # Extract the port from the pre-parsed JSON payload
+    VUE_PORT=$(echo "$VUE_APP_CONFIG_DATA" | jq -r '.devel_server.port')
+
+    if [ -z "$VUE_PORT" ] || [ "$VUE_PORT" == "null" ]; then
+        echo "Error: Could not determine devel_server.port from frontend configuration." >&2
+        exit 1
+    fi
+
+    echo "Loading back end configuration into environment..."
+    be_config_json=$(python3 -m json5 --as-json "$BE_CONFIG_FILE")
+
+
+
+    export VUE_APP_BE_PORT_NUMBER="$(echo "$be_config_json" | jq -r .port)"
+
+
+
+
+
+    echo "Booting Vue development server on port $VUE_PORT with Hot Module Replacement..."
+
+    # Set the trap to kill the orphaned Node/Webpack processes
+    trap 'echo -e "\nCleaning up lingering Vue processes on port $VUE_PORT..."; fuser -k "${VUE_PORT}/tcp" 2>/dev/null || true' EXIT
+
     (
         verify_npm_reqs
         cd "$ithelp_fe_path" || exit 1
@@ -155,9 +188,22 @@ else
 
     # 3. The Restricted Build Execution
     echo "Dropping privileges to user '$BUILD_USER' to safely compile Node assets..."
-    # We pass TEMP_DIR as an inline environment variable so we can use SINGLE QUOTES 
-    # for the bash payload, guaranteeing that $(which node) runs as the BUILD_USER.
-    sudo -E -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" VUE_APP_SYSTEM_DATA_DIR="$VUE_APP_SYSTEM_DATA_DIR" bash -c '
+    
+    # Changed -E to -H
+    sudo -H -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" VUE_APP_SYSTEM_DATA_DIR="$VUE_APP_SYSTEM_DATA_DIR" VUE_APP_BE_PORT_NUMBER="$VUE_APP_BE_PORT_NUMBER" bash -c '
+        
+        # ---------------------------------------------------------
+        # MANUALLY INITIALIZE NVM FOR THIS NON-INTERACTIVE SHELL
+        # ---------------------------------------------------------
+        export NVM_DIR="$HOME/.nvm"
+        if [ -s "$NVM_DIR/nvm.sh" ]; then
+            \. "$NVM_DIR/nvm.sh"
+        else
+            echo "Error: nvm.sh not found in $NVM_DIR." >&2
+            echo "Please ensure nvm is installed for user $USER." >&2
+            exit 1
+        fi
+
         # Re-establish the directory paths inside the child shell
         REQ_MODS_DIR="$TEMP_DIR/required-modules"
         FE_MOD_DIR="$TEMP_DIR/front-end-module"
@@ -194,7 +240,6 @@ else
             echo "nvm environment verified ($NODE_BIN_PATH)."
         }
         
-        
         verify_npm_reqs
         echo "Provisioning node modules for rt_interface_lib..."
         
@@ -216,7 +261,6 @@ else
 
         echo "Building the frontend assets with npm..."
         npm run build
-
     '
     
     # 4. Return to Root & Deploy

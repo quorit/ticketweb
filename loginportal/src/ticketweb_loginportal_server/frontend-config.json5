@@ -1,49 +1,26 @@
 {
 
    // In devel mode,
-   // vue_app_path_roots might look like:
-   // "vue_app_path_roots": {
-   //    "frontend": "/frontend/",
-   //    "server": "/server/"
-   // },
-   // 
+   // vue_app_path_root should just be
+   // set to "/" 
    // In production mode,
-   // vue_app_path_roots might like like this:
+   // vue_app_path_root might like like this:
+   // "/ticketweb/loginportal/"
    //
-   // "vue_app_path_roots": {
-   //   "frontend": "/ticketweb/loginportal/frontend/",
-   //   "server": "/ticketweb/loginportal/server/"
-   // },
-   // 
-   // The paths in production mode all have the "loginportal"
+   // The example path in production mode has the "loginportal"
    // segment because the production front end web server (probably Apache)
    // has to differentiate between multiple front ends for the different apps, and it does this by having a segment in the URL path for each app.
    // For instance "/ticketweb/apps/reporting" would point to another front end
    // (i.e. that of the reporting app front end),
    // whereas a development server only serves it's own front end.
-   "vue_app_path_roots": {
-      "frontend": "/frontend/",
-      "server": "/server/"
-   },
+   "vue_app_path_root": "/",
    "banner": {
        "mode_text": "(development build)",
        "color": "red"
    },
 
-   // The devel server section is only used in development mode, and is ignored in production mode. 
-   // It contains configuration options that are specific to the development server, such as proxy settings and the port to listen on.
+   // "devel_port" is used only in development mode, and is ignored in production mode. 
    // In production mode, you should probably delete this section or comment it out, to avoid any confusion.
-   "devel_server": {
-       // In development mode the proxies section
-       // ties the 'server' path (defined in the vue_app_path roots section) to the back-end server.
-       // In this example, in the accompanying config.json5 file,we will have configured
-       // the back end server to be bound to port 8004.
-       "proxies": {
-          "server": "http://127.0.0.1:8004"
-       },
-
-       // the port is the port that the front end development web server will listen on.
-       "port": "8082"
-   }
+   "devel_port": "8082"
 }
 

@@ -3,8 +3,8 @@
 # Root-level dispatcher to install monorepo scripts to the local or system PATH.
 
 # 1. Identify the Repo Root and Scripts source
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPTS_SRC="$REPO_ROOT/devel-scripts"
+REPO_DEVEL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPTS_SRC="$REPO_DEVEL_ROOT/scripts"
 
 if [ ! -d "$SCRIPTS_SRC" ]; then
     echo "Error: Could not find scripts directory at $SCRIPTS_SRC"
@@ -23,16 +23,18 @@ else
 fi
 
 # 3. Perform the Installation
-echo "--> Syncing scripts from $SCRIPTS_SRC..."
+echo "--> Symlinking scripts from $SCRIPTS_SRC..."
 
-# We use 'cp -v' to show exactly what is being moved. 
-# We don't use 'ln -s' here because we want these to be independent 
-# of the repo state once "installed".
-cp -v "$SCRIPTS_SRC"/* "$TARGET_DIR/"
+# We use 'ln -sfv' to create live symbolic links. 
+# -s: Creates symbolic links instead of hard links
+# -f: Forces overwrite of any existing static copies previously installed
+# -v: Verbose output to show exactly what is being linked
+ln -sfv "$SCRIPTS_SRC"/* "$TARGET_DIR/"
 
 # 4. Ensure Permissions
-echo "--> Ensuring executable permissions in $TARGET_DIR..."
-chmod +x "$TARGET_DIR"/ticketweb-*
+# We set +x on the source files so the symlinks inherit the correct execution rights
+echo "--> Ensuring executable permissions in $SCRIPTS_SRC..."
+chmod +x "$SCRIPTS_SRC"/ticketweb-*
 
 # 5. Final Path Verification
 if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then

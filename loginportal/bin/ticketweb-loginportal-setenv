@@ -109,7 +109,7 @@ if [ "$WITHIN_VENV" = "false" ]; then
     export CONFIG_DIR="/etc/ticketweb/loginportal"
     export DATA_DIR="/var/lib/ticketweb/$BUILD_ID/loginportal"
     export LOG_DIR="/var/log/ticketweb/$BUILD_ID/loginportal"
-    export SYSTEMD_OS_DIR="/etc/systemd/system"
+    export SYSTEMD_OS_DIR="/usr/lib/systemd/system"
     export LIBEXEC_DIR="/usr/local/libexec/ticketweb/$BUILD_ID"
     export SRV_DIR="/srv/ticketweb/loginportal"
 
@@ -133,7 +133,7 @@ else
         # (Root user, Inside a Venv)
         export DATA_DIR="/var/lib/ticketweb/$BUILD_ID/loginportal"
         export LOG_DIR="/var/log/ticketweb/$BUILD_ID/loginportal"
-        export SYSTEMD_OS_DIR="/etc/systemd/system"
+        export SYSTEMD_OS_DIR="/usr/lib/systemd/system"
 
 
         # Uses System path AND $BUILD_ID

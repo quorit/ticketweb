@@ -14,7 +14,7 @@
     },
 
 
-   // The bind section tells us what port we want the server to listen on.
-   // It should only listen locally.
-   "bind": "127.0.0.1:8004"
+   // The port section tells us what port we want the server to listen on.
+   // It will only listen locally.
+   "port": "8004"
 }

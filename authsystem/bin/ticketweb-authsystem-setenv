@@ -109,8 +109,7 @@ if [ "$WITHIN_VENV" = "false" ]; then
     export CONFIG_DIR="/etc/ticketweb/authsystem"
     export DATA_DIR="/var/lib/ticketweb/$BUILD_ID/authsystem"
     export LOG_DIR="/var/log/ticketweb/$BUILD_ID/authsystem"
-    export SYSTEMD_STAGING_DIR="/usr/lib/systemd/system"
-    export SYSTEMD_OS_DIR="/etc/systemd/system"
+    export SYSTEMD_OS_DIR="/usr/lib/systemd/system"
     export LIBEXEC_DIR="/usr/local/libexec/ticketweb/$BUILD_ID" 
 
 else
@@ -118,6 +117,7 @@ else
     export CONFIG_DIR="$BUILD_ROOT/etc/authsystem"
 
     
+
     
     if [ "$DEVEL_MODE" = "true" ]; then
         # --- STATE 2: Developer Install ---
@@ -136,17 +136,14 @@ else
         # (Root user, Inside a Venv)
         export DATA_DIR="/var/lib/ticketweb/$BUILD_ID/authsystem"
         export LOG_DIR="/var/log/ticketweb/$BUILD_ID/authsystem"
-        export SYSTEMD_OS_DIR="/etc/systemd/system"
 
-        # Since files in the staging directory have to be linked fromto from the systemd system path,
-        # and the link names won't have the $BUILD_ID in them, 
-        # we can't use a staging directory that is unique to each build. 
+ 
         # We are accepting that this will cause overwriting of unit files that
         # have the same name accross different builds, but in the case of a version difference,
         # the sysadmin can make custom unit files in /etc/systemd/system that 
-        # don't link to the new ones in the staging directory.
+        # will override the new ones.
         # 
-        export SYSTEMD_STAGING_DIR="/usr/lib/systemd/system"
+        export SYSTEMD_OS_DIR="/usr/lib/systemd/system"
         # Uses System path AND $BUILD_ID
         export LIBEXEC_DIR="/usr/local/libexec/ticketweb/$BUILD_ID"
     fi

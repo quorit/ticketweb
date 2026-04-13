@@ -319,7 +319,7 @@ class SubmitTicketRptSupport(SubmitTicket):
                       + "</dl>"
             return result
 
-        super().__init__("rptsupport",get_subject,get_ticket_content,config_data)
+        super().__init__("reporting","rptsupport",get_subject,get_ticket_content,config_data)
 
 
 
@@ -388,7 +388,7 @@ class SubmitTicketStudent(SubmitTicket):
                      + _build_requested_fields(req_content["requested_fields"]) \
                      + "</dl>"
             return result
-        super().__init__("student",get_subject,get_ticket_content,config_data)
+        super().__init__("reporting","student",get_subject,get_ticket_content,config_data)
 
 
 
@@ -443,5 +443,5 @@ class SubmitTicketAdmissions(SubmitTicket):
                      + "</dl>"
             return result
 
-        super().__init__("admissions",get_subject,get_ticket_content,config_data)
+        super().__init__("reporting","admissions",get_subject,get_ticket_content,config_data)
 

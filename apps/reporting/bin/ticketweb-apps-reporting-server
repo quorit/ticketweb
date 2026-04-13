@@ -13,11 +13,26 @@ if ! python3 -m json5 "$config_file" > /dev/null 2>&1; then
 fi
 
 config_file_contents=$(python3 -m json5 --as-json "$config_file")
-gunicorn_bind=$(echo "$config_file_contents" | jq -r .bind)
+
+port_number=$(echo "$config_file_contents" | jq -r .port)
+
+
+gunicorn_bind="127.0.0.1:$port_number"
+
 
 # 2. Execution Logic
 if [ "$DEVEL_MODE" = "true" ]; then
-    echo "Starting Development Server (Reloading)..."
+    echo "Starting Development Server (Reloading) on port $port_number..."
+    
+    # Pre-emptive Strike: Kill anything sitting on our target port
+    echo "Clearing port $port_number of any lingering processes..."
+    fuser -k "${port_number}/tcp" 2>/dev/null || true
+    
+    # Give the OS a split second to fully release the socket
+    sleep 0.5
+
+    # Because we aren't trapping anymore, we can safely use 'exec' to replace Bash 
+    # directly with Gunicorn, keeping the process tree nice and clean.
     exec gunicorn --log-level debug --reload --bind "$gunicorn_bind" \
              "ticketweb_apps_reporting.back_end.app:main()"
 else
@@ -40,5 +55,3 @@ else
          --pid "$PID_FILE" \
          "ticketweb_apps_reporting.back_end.app:main()"
 fi
-
-

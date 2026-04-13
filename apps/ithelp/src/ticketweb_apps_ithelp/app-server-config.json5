@@ -16,9 +16,11 @@
    // GET calls to the following URL (belonging to the authentication server) give us a public key
    // by which we can verify application tokens given to the app by the front end,
    // originally served to the front end from the authentication server.
-   "pub_key_url": "http://127.0.0.1:8001/pubkeys/ithelp",
+   // "pub_key_url": "http://127.0.0.1:8001/pubkeys/ithelp",
+   "authsystem_url": "http://127.0.0.1:8001/",
    //This is the port bind for the application server. 
    // We should only allow local connections the port shouldn't conflict with other ones
    // already in use. 
-   "bind": "127.0.0.1:8003"
+   // "bind": "127.0.0.1:8003"
+   "port": "8003"
 }

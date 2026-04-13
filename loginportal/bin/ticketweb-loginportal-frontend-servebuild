@@ -3,9 +3,6 @@
 # Exit immediately if a command fails
 set -e
 
-
-
-
 echo "Starting TicketWeb Login Portal Build/Serve Script..."
 
 # 1. Pull in the environment
@@ -19,7 +16,7 @@ if [ ! -d "$FRONTEND_MODULE_PATH" ]; then
     exit 1
 fi
 
-# 3. Load the Frontend Config Payload
+# Load the Frontend Config Payload
 CONFIG_FILE="$CONFIG_DIR/frontend-config.json5"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: Frontend config file missing at $CONFIG_FILE."
@@ -30,6 +27,16 @@ fi
 echo "Loading frontend configuration into environment..."
 # Exporting this makes it available to Node/Vue during the build/serve process
 export VUE_APP_CONFIG_DATA=$(python3 -m json5 --as-json "$CONFIG_FILE")
+
+
+# Load the Backend Config Payload
+BE_CONFIG_FILE="$CONFIG_DIR/server-config.json5"
+if [ ! -f "$BE_CONFIG_FILE" ]; then
+    echo "Error: Server config file missing at $BE_CONFIG_FILE."
+    echo "Please ensure the installation script completed successfully."
+    exit 1
+fi
+
 
 
 
@@ -70,8 +77,6 @@ verify_npm_reqs()
     echo "nvm environment verified ($NODE_BIN_PATH)."
 }
 
-
-
 # ==============================================================================
 # DEVELOPMENT MODE
 # ==============================================================================
@@ -82,7 +87,27 @@ if [ "$DEVEL_MODE" = "true" ]; then
         exit 1
     fi
 
-    echo "Booting Vue development server with Hot Module Replacement..."
+    # Extract the port from the pre-parsed JSON payload
+    VUE_PORT=$(echo "$VUE_APP_CONFIG_DATA" | jq -r '.devel_port')
+
+    if [ -z "$VUE_PORT" ] || [ "$VUE_PORT" == "null" ]; then
+        echo "Error: Could not determine devel_port from frontend configuration." >&2
+        exit 1
+    fi
+
+
+    echo "Loading back end configuration into environment..."
+    be_config_json=$(python3 -m json5 --as-json "$BE_CONFIG_FILE")
+
+
+
+    export VUE_APP_BE_PORT_NUMBER="$(echo "$be_config_json" | jq -r .port)"
+
+    echo "Booting Vue development server on port $VUE_PORT with Hot Module Replacement..."
+
+    # Set the trap to kill the orphaned Node/Webpack processes
+    trap 'echo -e "\nCleaning up lingering Vue processes on port $VUE_PORT..."; fuser -k "${VUE_PORT}/tcp" 2>/dev/null || true' EXIT
+
     (
         verify_npm_reqs
         cd "$FRONTEND_MODULE_PATH" || exit 1
@@ -129,15 +154,28 @@ else
 
     # 3. The Restricted Build Execution
     echo "Dropping privileges to user '$BUILD_USER' to safely compile Node assets..."
-    # We pass TEMP_DIR as an inline environment variable so we can use SINGLE QUOTES 
-    # for the bash payload, guaranteeing that $(which node) runs as the BUILD_USER.
-    sudo -E -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" bash -c '
+    
+    # -H ensures $HOME points to the BUILD_USER's home directory.
+    # We removed -E so root's environment doesn't pollute the build user's paths.
+    sudo -H -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" VUE_APP_BE_PORT_NUMBER="$VUE_APP_BE_PORT_NUMBER" bash -c '
+        
+        # ---------------------------------------------------------
+        # MANUALLY INITIALIZE NVM FOR THIS NON-INTERACTIVE SHELL
+        # ---------------------------------------------------------
+        export NVM_DIR="$HOME/.nvm"
+        if [ -s "$NVM_DIR/nvm.sh" ]; then
+            \. "$NVM_DIR/nvm.sh"
+        else
+            echo "Error: nvm.sh not found in $NVM_DIR." >&2
+            echo "Please ensure nvm is installed for user $USER." >&2
+            exit 1
+        fi
+        
         verify_npm_reqs()
         {
             echo "Verifying Node.js, npm, and nvm environment..."
-            echo "Verifying Node.js environment..."
 
-            # 1. Check that node and npm exist globally or locally
+            # 1. Check that node and npm exist
             if ! command -v node >/dev/null 2>&1; then
                 echo "Error: '\''node'\'' command not found. Node.js is required." >&2
                 exit 1
@@ -167,7 +205,7 @@ else
         verify_npm_reqs
         
         # TEMP_DIR is safely read from the environment
-        cd "$TEMP_DIR/frontend_module" || exit 1
+        cd "$TEMP_DIR/frontend-module" || exit 1
         
         echo "Running npm install..."
         npm install
@@ -179,7 +217,7 @@ else
     # 4. Return to Root & Deploy
     echo "Build complete. Resuming root privileges for deployment..."
     
-    DIST_DIR="$TEMP_DIR/frontend_module/dist"
+    DIST_DIR="$TEMP_DIR/frontend-module/dist"
     if [ ! -d "$DIST_DIR" ]; then
         echo "Error: Build failed. 'dist' directory was not generated."
         exit 1

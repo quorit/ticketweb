@@ -86,7 +86,7 @@ import ErrorDiv from '../components/ErrorDiv.vue'
 
 const config_data = JSON.parse(process.env.VUE_APP_CONFIG_DATA);
 
-const server_path = config_data.vue_app_path_roots.server;
+const server_path = config_data.vue_app_path_roots + "server/";
 
 
 

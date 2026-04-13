@@ -62,8 +62,9 @@ def _get_signing_key(req_token,issuer_portal):
         )
     login_portal_instance_data = login_portal_data[issuer_portal] 
     if issuer_portal == "ticketweb":
-        loginportal_pub_key_url = login_portal_instance_data["signing_key_url"]
-        receive = requests.get(loginportal_pub_key_url)
+        loginportal_pub_key_url = login_portal_instance_data["portal_url"] + "server/pubkey"
+        print (loginportal_pub_key_url)
+        receive = requests.get(loginportal_pub_key_url,verify=False)
         signing_key = receive.text
         if receive.status_code != 200:
             raise Exception("Failed commmunication with login portal")

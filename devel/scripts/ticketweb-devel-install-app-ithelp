@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Exit immediately if a command fails
+set -e
+
+echo "Bootstrapping TicketWeb Reporting Development Environment..."
+
+# 1. Verify required environment variables are set
+if [ -z "$TICKETWEB_REPO_ROOT" ]; then
+    echo "Error: \$TICKETWEB_REPO_ROOT is not set." >&2
+    exit 1
+fi
+
+if [ -z "$TICKETWEB_DEVEL_VENV_ROOT" ]; then
+    echo "Error: \$TICKETWEB_DEVEL_VENV_ROOT is not set." >&2
+    exit 1
+fi
+
+# 2. Change directory internally so the relative requirements path works
+echo "Navigating to $TICKETWEB_REPO_ROOT..."
+cd "$TICKETWEB_REPO_ROOT" || exit 1
+
+# 3. Activate the virtual environment for this script's execution context
+echo "Activating virtual environment at $TICKETWEB_DEVEL_VENV_ROOT..."
+if [ ! -f "$TICKETWEB_DEVEL_VENV_ROOT/bin/activate" ]; then
+    echo "Error: Virtual environment activation script not found at $TICKETWEB_DEVEL_VENV_ROOT/bin/activate" >&2
+    exit 1
+fi
+source "$TICKETWEB_DEVEL_VENV_ROOT/bin/activate"
+
+# 4. Install the requirements
+echo "Installing development requirements..."
+pip install -r devel/requirements/apps/ithelp.txt
+
+echo -e "\n✅ Local environment successfully bootstrapped inside the virtual environment!"

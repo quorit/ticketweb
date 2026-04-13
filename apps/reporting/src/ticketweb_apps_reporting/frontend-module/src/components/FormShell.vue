@@ -104,7 +104,7 @@ const config_data = JSON.parse(process.env.VUE_APP_CONFIG_DATA);
 
 
 const authsystem_path = config_data.vue_app_path_roots.authsystem;
-const app_server_path = config_data.vue_app_path_roots.app_server;
+const app_server_path = config_data.vue_app_path_roots.app + "server/";
 
 class NotDAError extends Error {
     //this is for when a fetch fails and we don't even get a response
