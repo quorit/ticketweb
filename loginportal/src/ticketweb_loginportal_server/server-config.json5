@@ -5,7 +5,7 @@
    // while making sure that passwords are protected.
    // In production mode, the ticketweb_portal user, must be able
    // to employ the command.
-   // In development more, the local user must be able to do so.
+   // In development mode, the local user must be able to do so.
    "ldap": {
       "url": "ldaps://summer.ad.queensu.ca/",
       "dn": "CN=OUR IT Support (OURITHLP),OU=19004,OU=OURL4,OU=OUR,OU=REG,OU=VPA,OU=QUEENS,OU=Staff,OU=People,DC=AD,DC=QUEENSU,DC=CA",

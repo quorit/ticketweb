@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import OnboardingForm from '../views/Onboarding.vue'
+import HomeView from '../views/HomeView.vue'
 import ErrorPage from '../views/ErrorPage.vue'
 
 const authsystem_network = require ("authsystem_network");
@@ -28,8 +29,12 @@ const routes = [
         name: 'error_page',
         // eslint-disable-next-line no-unused-vars
         props: true
+    },
+    {
+        path: '*',
+        component: HomeView,
+        name: 'home'
     }
-
 ];
 
 

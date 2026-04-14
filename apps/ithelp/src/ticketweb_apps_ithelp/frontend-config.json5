@@ -2,26 +2,23 @@
    // In devel mode,
    // vue_app_path_roots might look like:
    // "vue_app_path_roots": {
-   //     "frontend": "/app/frontend/",
-   //     "shared_data": "/app/shared-data/",
-   //     "app_server": "/app/server/",
-   //     "authsystem": "/authsystem-server/"
+   //   "app": "/app/",
+   //   "authsystem": "/authsystem-server/"
    // },
-   //
    // In production mode,
    // vue_app_path_roots might look like this:
    // "vue_app_path_roots": {
-   //    "frontend": "/ticketweb/apps/ithelp/frontend/",
-   //    "shared_data": "/ticketweb/apps/ithelp/shared-data/",
-   //    "app_server": "/ticketweb/apps/ithelp/server/",
+   //    "app": "/ticketweb/apps/ithelp/",
    //    "authsystem": "/ticketweb/authsystem-server/"
    // },
-   // 'frontend' tells the front end it's own url root
-   // 'shared_data' is a url path from which static data is fetched
-   // 'app_server' is a url path for the app's backend server, which is always proxied
-   // 'authsystem' is a url path for the auth system server. The front end sets establishes 
+   // 'app' is a url root for the app. The url of the front end
+   //  will be <app>frontend/.
+   //  The url of the app server will be <app>server/.
+   // Static data is served from <app>shared-data/.
+   // 'authsystem' is a url path for the auth system server root. The front end
+   // uses the authsystem to establish
    // sessions
-   // and fetches app tokens from the auth system.
+   // and fetch app tokens.
    "vue_app_path_roots": {
       "app": "/app/",
       "authsystem": "/authsystem-server/"
@@ -51,7 +48,7 @@
       // if 'portal_type' is set to 'ticketweb' then
       // 'data' will be set like this:
       //        "data": {
-      //         "server_root": "http://localhost:8082/"
+      //         "server_root": "https://ourvmlindev-1.ad.queensu.ca/ticketweb_devel_prod_test/loginportal/"
       // }
       // 
       // Here, "server_root" is the url of the portal
@@ -59,29 +56,28 @@
       // Specifically the browser tab will be redirected to {server_root}/frontend
       "portal_type": "ticketweb",
       "data": {
-         "server_root": "http://localhost:8082/"
+         "server_root": "https://ourvmlindev-1.ad.queensu.ca/ticketweb_devel_prod_test/loginportal/"
       }
    },
 
 
-   // The devel server section is only used in development mode, and is ignored in production mode. 
-   // It contains configuration options that are specific to the development server, such as proxy settings and the port to listen on.
+   // The devel_server section is only used in development mode, and is ignored in production mode. 
+   // It contains configuration options that are specific to the development server, such as proxy settings
+   // and the port to listen on.
    // In production mode, you should probably delete this section or comment it out, to avoid any confusion.
 
    "devel_server": {
-       // In development mode the proxies section
-       // ties the 'server' and 'authsystem' paths 
-       // (defined in the vue_app_path roots section) to back-end servers.
-      
-
-
-      // "proxies": {
-      //    "app_server": "http://127.0.0.1:8003",
-      //    "authsystem": "http://127.0.0.1:8001"
-      // },
+       // The authsystem_url is the url of the authentication system server, 
+       // which the front end will use to establish sessions and fetch app tokens.
+       // In development mode, the front end dev server will proxy requests with 
+       // the path prefix specified by the vue_app_path_roots/authsystem section 
+       // (defined in the vue_app_path roots section) to back-end auth server.
+       // So in development mode, authsystem_url should be set to the url of the 
+       // back-end auth system server, without the path prefix.      
       "authsystem_url": "http://127.0.0.1:8001",
 
        // the port is the port that the front end development web server will listen on.
+       // In development mode, you will access the front end by going to localhost:<port> in a web browser.
        "port": "8081"
    }
 }

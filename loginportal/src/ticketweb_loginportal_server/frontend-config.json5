@@ -21,6 +21,7 @@
 
    // "devel_port" is used only in development mode, and is ignored in production mode. 
    // In production mode, you should probably delete this section or comment it out, to avoid any confusion.
+   // This is the port that the development server (i.e. the one started by "npm run serve") listens on.
    "devel_port": "8082"
 }
 
