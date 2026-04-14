@@ -228,13 +228,15 @@ def _build_dtdd(title, data,escape_data=True):
         out_data=data
     return "<dt>" + title + ":</dt><dd>" + out_data + "</dd>"
 
-if sys.base_prefix != sys.prefix:
-    _data_path = sys.prefix + "/usr/local/share/ticketweb/applications/ithelp/shared-data"
-else:
-    _data_path = "/usr/local/share/ticketweb/applications/ithelp/shared-data"
+
+def _get_data_path():
+   return os.getenv("DATA_DIR", "/etc/ticketweb/apps/reporting")
+
+
+
 
 def _get_shared_data():
-    file = os.path.join(_data_path,"init_data.json")
+    file = os.path.join(_get_data_path(),"init_data.json")
     f = open(file,"r")
     shared_data = json.load(f)
     f.close()
