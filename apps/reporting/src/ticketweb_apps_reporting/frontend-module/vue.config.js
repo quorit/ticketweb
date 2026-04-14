@@ -13,11 +13,11 @@ module.exports = {
   publicPath: config_data.vue_app_path_roots.app + "frontend/",
   // outputDir: path.resolve(process.env.VUE_APP_VENV_ROOT,"srv/ticketweb/applications/reporting/frontend"),
   devServer: (process.env.NODE_ENV=='development')?{
-    port: config_data.devel_server.port,
+    port: config_data.devel_port,
     proxy: {
 
          ['^' + config_data.vue_app_path_roots.authsystem]: {
-            target: config_data.devel_server.authsystem_url,
+            target: process.env.VUE_APP_BE_AUTHSYSTEM_URL,
             pathRewrite: {
                ['^' + config_data.vue_app_path_roots.authsystem]: '/'
             }

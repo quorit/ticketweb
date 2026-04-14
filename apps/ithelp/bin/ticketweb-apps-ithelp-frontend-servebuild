@@ -43,18 +43,12 @@ echo "Loading frontend configuration into environment..."
 export VUE_APP_CONFIG_DATA=$(python3 -m json5 --as-json "$CONFIG_FILE")
 
 
-# Load the Backend Config Payload
-BE_CONFIG_FILE="$CONFIG_DIR/app-server-config.json5"
-if [ ! -f "$BE_CONFIG_FILE" ]; then
-    echo "Error: Server config file missing at $BE_CONFIG_FILE."
-    echo "Please ensure the installation script completed successfully."
-    exit 1
-fi
 
 
 
 
-export VUE_APP_SYSTEM_DATA_DIR="$DATA_DIR"
+
+
 
 
 verify_npm_reqs()
@@ -106,21 +100,32 @@ if [ "$DEVEL_MODE" = "true" ]; then
         exit 1
     fi
 
-    # Extract the port from the pre-parsed JSON payload
-    VUE_PORT=$(echo "$VUE_APP_CONFIG_DATA" | jq -r '.devel_server.port')
 
-    if [ -z "$VUE_PORT" ] || [ "$VUE_PORT" == "null" ]; then
-        echo "Error: Could not determine devel_server.port from frontend configuration." >&2
-        exit 1
+    export VUE_APP_SYSTEM_DATA_DIR="$DATA_DIR"
+    # Load the Backend Config Payload
+    BE_CONFIG_FILE="$CONFIG_DIR/app-server-config.json5"
+    if [ ! -f "$BE_CONFIG_FILE" ]; then
+       echo "Error: Server config file missing at $BE_CONFIG_FILE."
+       echo "Please ensure the installation script completed successfully."
+       exit 1
     fi
 
     echo "Loading back end configuration into environment..."
     be_config_json=$(python3 -m json5 --as-json "$BE_CONFIG_FILE")
 
-
-
     export VUE_APP_BE_PORT_NUMBER="$(echo "$be_config_json" | jq -r .port)"
+    export VUE_APP_BE_AUTHSYSTEM_URL="$(echo "$be_config_json" | jq -r .authsystem_url)"
 
+ 
+ 
+
+    # Extract the port from the pre-parsed JSON payload
+    VUE_PORT=$(echo "$VUE_APP_CONFIG_DATA" | jq -r '.devel_port')
+
+    if [ -z "$VUE_PORT" ] || [ "$VUE_PORT" == "null" ]; then
+        echo "Error: Could not determine devel_server.port from frontend configuration." >&2
+        exit 1
+    fi
 
 
 
@@ -190,7 +195,7 @@ else
     echo "Dropping privileges to user '$BUILD_USER' to safely compile Node assets..."
     
     # Changed -E to -H
-    sudo -H -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" VUE_APP_SYSTEM_DATA_DIR="$VUE_APP_SYSTEM_DATA_DIR" VUE_APP_BE_PORT_NUMBER="$VUE_APP_BE_PORT_NUMBER" bash -c '
+    sudo -H -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" bash -c '
         
         # ---------------------------------------------------------
         # MANUALLY INITIALIZE NVM FOR THIS NON-INTERACTIVE SHELL

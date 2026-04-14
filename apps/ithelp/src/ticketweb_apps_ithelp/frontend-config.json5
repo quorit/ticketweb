@@ -60,26 +60,15 @@
       }
    },
 
+   // Devel port is only set in development mode, and is ignored in production mode.
+   // This is the port that the front end development web server will listen on.
+   // In development mode, you will access the front end by going to localhost:<port> in a web browser.
+   // In production mode, you may wish to comment this out.
 
-   // The devel_server section is only used in development mode, and is ignored in production mode. 
-   // It contains configuration options that are specific to the development server, such as proxy settings
-   // and the port to listen on.
-   // In production mode, you should probably delete this section or comment it out, to avoid any confusion.
 
-   "devel_server": {
-       // The authsystem_url is the url of the authentication system server, 
-       // which the front end will use to establish sessions and fetch app tokens.
-       // In development mode, the front end dev server will proxy requests with 
-       // the path prefix specified by the vue_app_path_roots/authsystem section 
-       // (defined in the vue_app_path roots section) to back-end auth server.
-       // So in development mode, authsystem_url should be set to the url of the 
-       // back-end auth system server, without the path prefix.      
-      "authsystem_url": "http://127.0.0.1:8001",
+   "devel_port": "8081"
 
-       // the port is the port that the front end development web server will listen on.
-       // In development mode, you will access the front end by going to localhost:<port> in a web browser.
-       "port": "8081"
-   }
+
 }
 
 

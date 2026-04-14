@@ -2,26 +2,23 @@
    // In devel mode,
    // vue_app_path_roots might look like:
    // "vue_app_path_roots": {
-   //     "frontend": "/app/frontend/",
-   //     "shared_data": "/app/shared-data/",
-   //     "app_server": "/app/server/",
-   //     "authsystem": "/authsystem-server/"
+   //   "app": "/app/",
+   //   "authsystem": "/authsystem-server/"
    // },
-   //
    // In production mode,
    // vue_app_path_roots might look like this:
    // "vue_app_path_roots": {
-   //    "frontend": "/ticketweb/apps/reporting/frontend/",
-   //    "shared_data": "/ticketweb/apps/reporting/shared-data/",
-   //    "app_server": "/ticketweb/apps/reporting/server/",
+   //    "app": "/ticketweb/apps/ithelp/",
    //    "authsystem": "/ticketweb/authsystem-server/"
    // },
-   // 'frontend' tells the front end it's own url root
-   // 'shared_data' is a url path from which static data is fetched
-   // 'app_server' is a url path for the app's backend server, which is always proxied
-   // 'authsystem' is a url path for the auth system server. The front end sets establishes 
+   // 'app' is a url root for the app. The url of the front end
+   //  will be <app>frontend/.
+   //  The url of the app server will be <app>server/.
+   // Static data is served from <app>shared-data/.
+   // 'authsystem' is a url path for the auth system server root. The front end
+   // uses the authsystem to establish
    // sessions
-   // and fetches app tokens from the auth system.
+   // and fetch app tokens.
    "vue_app_path_roots": {
       "frontend": "/app/",
       "authsystem": "/authsystem-server/"
@@ -64,23 +61,12 @@
    },
 
 
-   // The devel server section is only used in development mode, and is ignored in production mode. 
-   // It contains configuration options that are specific to the development server, such as proxy settings and the port to listen on.
-   // In production mode, you should probably delete this section or comment it out, to avoid any confusion.
+   // Devel port is only set in development mode, and is ignored in production mode.
+   // This is the port that the front end development web server will listen on.
+   // In development mode, you will access the front end by going to localhost:<port> in a web browser.
+   // In production mode, you may wish to comment this out.
+   "devel_port": "8080",
 
-   "devel_server": {
-       // In development mode the proxies section
-       // ties the 'server' and 'authsystem' paths 
-       // (defined in the vue_app_path roots section) to back-end servers.
-      //"proxies": {
-      //    "app_server": "http://127.0.0.1:8002",
-      //    "authsystem": "http://127.0.0.1:8001"
-      // },
-       "authsystem_url": "http://127.0.0.1:8001",
-
-       // the port is the port that the front end development web server will listen on.
-       "port": "8080"
-   }
 }
 
 

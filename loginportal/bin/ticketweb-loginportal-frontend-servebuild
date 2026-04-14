@@ -29,15 +29,6 @@ echo "Loading frontend configuration into environment..."
 export VUE_APP_CONFIG_DATA=$(python3 -m json5 --as-json "$CONFIG_FILE")
 
 
-# Load the Backend Config Payload
-BE_CONFIG_FILE="$CONFIG_DIR/server-config.json5"
-if [ ! -f "$BE_CONFIG_FILE" ]; then
-    echo "Error: Server config file missing at $BE_CONFIG_FILE."
-    echo "Please ensure the installation script completed successfully."
-    exit 1
-fi
-
-
 
 
 verify_npm_reqs()
@@ -95,7 +86,13 @@ if [ "$DEVEL_MODE" = "true" ]; then
         exit 1
     fi
 
-
+    # Load the Backend Config Payload
+    BE_CONFIG_FILE="$CONFIG_DIR/server-config.json5"
+    if [ ! -f "$BE_CONFIG_FILE" ]; then
+        echo "Error: Server config file missing at $BE_CONFIG_FILE."
+        echo "Please ensure the installation script completed successfully."
+        exit 1
+    fi
     echo "Loading back end configuration into environment..."
     be_config_json=$(python3 -m json5 --as-json "$BE_CONFIG_FILE")
 
@@ -157,7 +154,7 @@ else
     
     # -H ensures $HOME points to the BUILD_USER's home directory.
     # We removed -E so root's environment doesn't pollute the build user's paths.
-    sudo -H -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" VUE_APP_BE_PORT_NUMBER="$VUE_APP_BE_PORT_NUMBER" bash -c '
+    sudo -H -u "$BUILD_USER" TEMP_DIR="$TEMP_DIR" VUE_APP_CONFIG_DATA="$VUE_APP_CONFIG_DATA" bash -c '
         
         # ---------------------------------------------------------
         # MANUALLY INITIALIZE NVM FOR THIS NON-INTERACTIVE SHELL

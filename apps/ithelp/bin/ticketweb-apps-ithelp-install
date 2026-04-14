@@ -93,8 +93,13 @@ mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$LIBEXEC_DIR" "$SYSTEMD_OS_DIR" "
 
 if [ "$DEVEL_MODE" = "false" ]; then
    echo "Production mode: Securing data dir and logging directory..."
-   chown ticketweb_apps_ithelp:ticketweb_apps_ithelp "$DATA_DIR" "$LOG_DIR"
-   chmod 770 "$DATA_DIR" "$LOG_DIR"
+   # Set the group of DATA_DIR to 'apache' so the web server has group privileges
+   chown ticketweb_apps_reporting:apache "$DATA_DIR"
+   # 750: App user can read/write/execute. Apache group can read/execute. World gets nothing.
+   chmod 750 "$DATA_DIR"
+
+   # Keep logs strictly limited to the app user/group
+   chmod 770 "$LOG_DIR"
 fi
 
 # Ask the active venv's Python for the exact file path of the skeleton config file for the backend server, 

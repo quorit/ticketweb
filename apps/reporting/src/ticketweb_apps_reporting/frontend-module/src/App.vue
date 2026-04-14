@@ -30,7 +30,7 @@
             OUR/UAR Service Ticket Request Forms {{ mode_text }}
       </span>
       <v-spacer/>
-      <v-btn v-if="$route.name != 'login' && $route.name != 'error_page'"
+      <v-btn v-if="$route.name != 'login' && $route.name != 'error_page' && $route.name != 'home'"
                   class="ma-2"
                   @click ="logout()">
                   LOGOUT

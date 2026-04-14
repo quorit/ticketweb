@@ -4,6 +4,7 @@ import TicketInfo from '../views/TicketInfo.vue'
 import ReportingForm from '../views/Reporting.vue'
 import RptSupport from '../views/RptSupport.vue'
 import ErrorPage from '../views/ErrorPage.vue'
+import HomeView from '../views/HomeView.vue'
 
 const authsystem_network = require ("authsystem_network");
 import {get_error_params} from '../js_extra/web_project_error.js'
@@ -44,6 +45,11 @@ const routes = [
         name: 'error_page',
         // eslint-disable-next-line no-unused-vars
         props: true
+    },
+    {
+        path: '*',
+        component: HomeView,
+        name: 'home'
     }
 
 ];
