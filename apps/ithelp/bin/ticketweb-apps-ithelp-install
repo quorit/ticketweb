@@ -94,7 +94,9 @@ mkdir -p "$CONFIG_DIR" "$DATA_DIR" "$LOG_DIR" "$LIBEXEC_DIR" "$SYSTEMD_OS_DIR" "
 if [ "$DEVEL_MODE" = "false" ]; then
    echo "Production mode: Securing data dir and logging directory..."
    # Set the group of DATA_DIR to 'apache' so the web server has group privileges
-   chown ticketweb_apps_reporting:apache "$DATA_DIR"
+   chown ticketweb_apps_ithelp:apache "$DATA_DIR"
+   chown ticketweb_apps_ithelp:ticketweb_apps_ithelp "$LOG_DIR"
+
    # 750: App user can read/write/execute. Apache group can read/execute. World gets nothing.
    chmod 750 "$DATA_DIR"
 
