@@ -225,6 +225,15 @@ else
     echo "   You may also want to enable the services to start on boot using"
     echo "       sudo systemctl enable ticketweb-authsystem-server@$BUILD_ID.service" 
     echo "   and 'sudo systemctl enable ticketweb-authsystem-prunesessions@$BUILD_ID.timer'."
+    echo "5. You must now configure the web server to proxy requests to the server."
+    echo "   The exact steps for this will depend on the web server you are using (e.g. nginx, apache, caddy, etc.) and your specific setup,"
+    echo "   but in general, you will need to set up a reverse proxy to forward requests from the web server to the server."
+    echo "   If configuring Apache, you can run the script"
+    echo "         ticketweb-authsystem-gen-apache-config-fragment" 
+    echo "   to generate a sample Apache configuration file for the auth system," 
+    echo "   which you can then customize and use in your Apache setup."
+    echo "   Unfortunately, at this time, we do not have scripts to generate sample configuration files for other web servers," 
+    echo "   but you can use the generated Apache fragment as a guide."
 fi
 
 

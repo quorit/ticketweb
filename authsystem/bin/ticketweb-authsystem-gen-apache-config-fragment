@@ -1,0 +1,64 @@
+#!/bin/bash
+
+echo "Starting TicketWeb Auth System Apache fragment generator..."
+echo "If you are running this from a python virtual environment, ensure it is activated before running this script."
+echo "The configuration file fragment hereby generated is only a suggestion. You may need to make adjustments."
+
+config_root=unset
+
+# Exit immediately if a command fails
+set -e
+
+# 0. Parse arguments
+server_root=""
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --server-root)
+            server_root="$2"
+            shift 2
+            ;;
+        *)
+            echo "Error: Unknown parameter passed: $1" >&2
+            echo "Usage: $0 --server-root <path_to_server_root>" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$server_root" ]; then
+    echo "Error: The --server-root argument is required." >&2
+    echo "Example: $0 --server-root /ticketweb_devel_prod_test/authsystem-server/" >&2
+    exit 1
+fi
+
+# 1. Pull in the environment 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-authsystem-setenv"
+
+# 2. Extract configuration
+config_file="$CONFIG_DIR/config.json5"
+
+if ! python3 -m json5 "$config_file" > /dev/null 2>&1; then
+    echo "Error: Configuration file $config_file is missing or contains invalid JSON5." >&2
+    exit 1
+fi
+
+# Extract the port
+server_port=$(python3 -m json5 --as-json "$config_file" | jq -r .port)
+
+# Clean the server_root to ensure it ends with exactly one trailing slash
+clean_server_root=$(echo "$server_root" | sed 's#/*$##')/
+
+# 3. Generate the Apache configuration fragment
+cat << EOF
+#### AUTHSYSTEM SECTION BEGIN
+
+ProxyPass "${clean_server_root}" "http://127.0.0.1:${server_port}/"
+
+<Location "${clean_server_root}">
+    AuthType None
+    Require ip 130.15.108.0/23 10.0.0.0/8
+</Location>
+
+#### AUTHSYSTEM SECTION END
+EOF

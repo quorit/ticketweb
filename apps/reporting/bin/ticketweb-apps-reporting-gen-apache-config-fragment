@@ -1,0 +1,72 @@
+#!/bin/bash
+
+echo "Starting TicketWeb Reporting App Apache fragment generator..."
+echo "If you are running this from a python virtual environment, ensure it is activated before running this script."
+echo "The configuration file fragment hereby generated is only a suggestion. You may need to make adjustments."
+
+config_root=unset
+
+# Exit immediately if a command fails
+set -e
+
+# 1. Pull in the environment
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ticketweb-apps-reporting-setenv"
+
+# 2. Extract configurations
+server_config_file="$CONFIG_DIR/app-server-config.json5"
+frontend_config_file="$CONFIG_DIR/frontend-config.json5"
+
+if ! python3 -m json5 "$server_config_file" > /dev/null 2>&1 || ! python3 -m json5 "$frontend_config_file" > /dev/null 2>&1; then
+    echo "Error: One or more configuration files are missing or contain invalid JSON5." >&2
+    exit 1
+fi
+
+# Extract the base path for this specific app and strip any trailing slash
+app_root=$(python3 -m json5 --as-json "$frontend_config_file" | jq -r .vue_app_path_roots.app | sed 's#/*$##')
+
+# Extract the port
+server_port=$(python3 -m json5 --as-json "$server_config_file" | jq -r .port)
+
+# 3. Construct dynamic variables
+frontend_url="${app_root}/frontend"
+server_url="${app_root}/server"
+shared_data_url="${app_root}/shared-data"
+document_root="${SRV_DIR}"
+
+# 4. Generate the Apache configuration fragment
+cat << EOF
+#### reporting APP SECTION BEGIN
+
+Alias "${frontend_url}" "${document_root}"
+
+<Directory "${document_root}">
+    AuthType None
+    Require ip 130.15.108.0/23 10.0.0.0/8
+
+    # SPA Routing Configuration
+    RewriteEngine On
+    RewriteBase ${frontend_url}
+
+    RewriteRule ^index\.html$ - [L]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . ${frontend_url}/index.html [L]
+</Directory>
+
+ProxyPass "${server_url}" "http://127.0.0.1:${server_port}/"
+
+<Location ${server_url}>
+    AuthType None
+    Require ip 130.15.108.0/23 10.0.0.0/8
+</Location>
+
+Alias "${shared_data_url}" "${DATA_DIR}"
+
+<Directory "${DATA_DIR}">
+    AuthType None
+    Require ip 130.15.108.0/23 10.0.0.0/8
+</Directory>
+
+#### reporting APP SECTION END
+EOF
