@@ -137,10 +137,7 @@ def renew_session(application,session_id):
 
 
 def _delete_session_lambda(session_id,cur):
-    print(session_id + "YEAH")
     sql_code = _sql_bank['delete_session']
-    print(sql_code)
-    print([session_id])
     cur.execute(sql_code,[session_id])
 
 

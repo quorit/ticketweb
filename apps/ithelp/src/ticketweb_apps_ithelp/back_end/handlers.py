@@ -14,7 +14,6 @@ class BadRequest(Exception):
     def __init__(self,message,status):
        self._message = message
        self.status = status
-       print (message)
 
     def response_body(self):
        result = {

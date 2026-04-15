@@ -18,7 +18,6 @@ def create_token(secret,net_id,real_name,email,duration):
      jti = binascii.b2a_base64(os.urandom(24)).decode().rstrip()
      exp_time = int(time.time()) + 60 * duration
      exp_time_english = time.ctime(exp_time)
-     print (exp_time_english)
      jwt_payload = {
          'upn': net_id + '@' + "queensu.ca",
          'name': real_name,
@@ -88,7 +87,6 @@ def _get_user_data(ldap_handle,userid):
             description="User not found in LDAP Search"
         )
     result_attributes = ldap_search_result[0][1]
-    print (result_attributes)
     result_dict = {}
     result_dict["display_name"] = result_attributes["displayName"][0].decode(encoding='utf-8', errors='strict')
     proxy_addresses = result_attributes["proxyAddresses"]
@@ -166,17 +164,12 @@ class LoginHandler ():
 
             service_account_dn = ldap_data["dn"]
             search_base=ldap_data["search_base"]
-            print (service_account_pw)
             ldap_handle.simple_bind_s(service_account_dn,service_account_pw)
-            print ("hello hello 2")
             ldap_handle.set_option(ldap.OPT_REFERRALS, 0)
         except ldap.LDAPError as e:
             raise falcon.HTTPInternalServerError(description="Ldap failure: " + str(e))
         (user_dn,user_data) = _get_user_data(ldap_handle,userid)
-        print ("USER DATA FOLLOWS")
-        print (user_data)
-        print (user_data["primary_email"])
-        print ("Natalie whatever")
+
         # try:
         #     
         #     print ("hello hello")

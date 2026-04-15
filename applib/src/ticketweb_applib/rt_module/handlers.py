@@ -215,16 +215,13 @@ class BadRequestContentNotMultipart(BadRequest):
 
 def _get_user_data(req,config_data, invoker_app):
     pubkey_url = config_data["authsystem_url"] + "pubkeys/" + invoker_app
-    print (pubkey_url)
     receive = requests.get(pubkey_url)
     if receive.status_code != 200:
             raise Exception("Failed commmunication with token server")
     pub_key=receive.text
-    print ("Hello DINA")
     req_auth_hdr = req.get_header('Authorization')
     if not req_auth_hdr:
         raise BadRequestMissingHeader('Authorization')
-    print ("HELLO EINA")
     if len(req_auth_hdr) > 2048:
         raise BadRequestHeaderTooBig()
     re_pattern = r"^Bearer [-a-zA-Z0-9._]+$"
@@ -242,13 +239,10 @@ def _get_user_data(req,config_data, invoker_app):
         )
         
     except jwt.exceptions.InvalidTokenError as e:
-        print ("BAD TOKEN")
         descr = "Invalid Token Error: " + str(e)
-        print (descr)
         raise falcon.HTTPBadRequest(
             description=descr
         )
-    print ("HELLO YINA")
     if not isinstance(req_decoded["sub"],str):
         raise falcon.HTTPBadRequest(
             description="'sub' field in jwt data does not have string type"
@@ -359,16 +353,13 @@ class SubmitTicket():
                                     time.gmtime(time.mktime(time.strptime(due_date + " 23:59:59",
                                     "%Y-%m-%d %H:%M:%S"))))
     # need to throw bad requestrs if the due date is unparseable.
-        print ("HELLO AINA")
         user_data = _get_user_data(req,self.config_data,self.invoker_app)
-        print ("HELLO BINA")
         #For other form types this comes out of the request
         
 
         _rt_api_token = _get_rt_api_token(self.config_data)
         rt_path_base = self.config_data["rt"]["path_base"]
         auth_string = "Token " + _rt_api_token
-        print ("HELLO TINA")
         headers = {
             "Authorization": auth_string
         }
@@ -376,9 +367,7 @@ class SubmitTicket():
 
         mail_enc = urllib.parse.quote(mail)
         rt_path= rt_path_base + "REST/2.0/"
-        print (rt_path + "user/" + mail_enc)
         receive = requests.get(rt_path + "user/" + mail_enc,headers=headers,verify=False)
-        print ("HELLO MINA")
         current_user_name = None
         if receive.status_code == 200:
             current_user_name = mail_enc
@@ -416,7 +405,6 @@ class SubmitTicket():
 
 
         if receive.status_code not in [200,201]:
-            print (receive.status_code)
             raise Exception("Failed RT commmunication")
 
 
@@ -444,7 +432,6 @@ class SubmitTicket():
             if "due_date" in json_part:
                 internal_req_content["Due"] = get_due_date_rt(json_part["due_date"])
 
-            print(internal_req_content)
 
             mp_fields = [ 
                             ('JSON', (None, json.dumps(internal_req_content)))

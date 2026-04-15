@@ -24,7 +24,6 @@ def _get_config_data_all():
 config_data = _get_config_data_all()
 
 
-print(config_data)
 
 ldap_data = config_data["ldap"]
 

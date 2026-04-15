@@ -23,7 +23,6 @@ def create_token(secret,net_id,real_name,email,duration):
 
      exp_time = int(time.time()) + 60 * duration
      exp_time_english = time.ctime(exp_time)
-     print (exp_time_english)
      jwt_payload = {
          'sub': net_id,
          'name': real_name,
@@ -63,7 +62,6 @@ def _get_signing_key(req_token,issuer_portal):
     login_portal_instance_data = login_portal_data[issuer_portal] 
     if issuer_portal == "ticketweb":
         loginportal_pub_key_url = login_portal_instance_data["portal_url"] + "server/pubkey"
-        print (loginportal_pub_key_url)
         receive = requests.get(loginportal_pub_key_url,verify=False)
         signing_key = receive.text
         if receive.status_code != 200:
@@ -97,7 +95,6 @@ def _get_user_data(req):
         raise falcon.HTTPUnauthorized(
             description="Missing authorization header"
         )
-    print(req_auth_hdr)
     if len(req_auth_hdr) > 2048:
         raise falcon.HTTPUnauthorized(
             description="'Authorization' header is too long."
@@ -123,7 +120,6 @@ def _get_user_data(req):
                 algorithms=['RS256'],
                 options={"require": ["upn","name","email","exp","uti"]},
                 audience=jwt_audience)
-        print(req_decoded)
     except jwt.exceptions.ExpiredSignatureError as e:
         raise falcon.HTTPUnauthorized(
             description="JWT token has expired"
@@ -174,7 +170,6 @@ class AuthHandlerSession ():
             email = user_data["email"]
         else:
             session_id = cookie_vals[0]
-            print("Cookie"+session_id)
             session_data = renew_session(self.application,session_id)  
             # if the session is not found
             # or if the session has expired, appropriate errors get thrown
