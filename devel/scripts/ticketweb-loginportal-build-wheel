@@ -1,5 +1,5 @@
 #!/bin/bash
-# ticketweb-loginportal-build-wheel <directory>
+# ticketweb-loginportal-build-wheel [git_repo_root]
 
 set -e # Exit on error
 
@@ -8,11 +8,9 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-
 # 1. Determine the Git repository root directory
 if [ -n "$TICKETWEB_REPO_ROOT" ]; then
     git_repo_root="$TICKETWEB_REPO_ROOT"
-    # Ignore extra arguments if the env var is set, or you could enforce no arguments
 elif [ "$#" -eq 1 ]; then
     git_repo_root="$1"
 else
@@ -21,93 +19,17 @@ else
     exit 2
 fi
 
-
-verify_npm_reqs()
-{
-    echo "Verifying Node.js, npm, and nvm environment for build..."
-    echo "Verifying Node.js environment..."
-
-    # 1. Check that node and npm exist globally or locally
-    if ! command -v node >/dev/null 2>&1; then
-        echo "Error: 'node' command not found. Node.js is required for this build." >&2
-        exit 1
-    fi
-
-    if ! command -v npm >/dev/null 2>&1; then
-        echo "Error: 'npm' command not found. npm is required for this build." >&2
-        exit 1
-    fi
-
-    echo "Found Node.js: $(node -v)"
-    echo "Found npm: $(npm -v)"
-
-    # Strict nvm check
-    echo "Verifying nvm environment..."
-    NODE_BIN_PATH=$(which node)
-    
-    if [[ "$NODE_BIN_PATH" != *".nvm"* ]]; then
-        echo "Error: Building the frontend assets requires Node.js to be managed by nvm." >&2
-        echo "Current node executable is located at a system path: $NODE_BIN_PATH" >&2
-        echo "Please ensure nvm is installed, loaded, and active in this terminal." >&2
-        exit 1
-    fi
-    
-    echo "nvm environment verified ($NODE_BIN_PATH)."
-}
-
-
 TARGET_DIR="$git_repo_root/loginportal"
-
 PACKAGE_ROOT=$(cd "$TARGET_DIR" && pwd)
-# FIX 2: Point to the actual nested frontend directory
-FE_DIR="$PACKAGE_ROOT/src/ticketweb_loginportal_server/frontend-module"
 
-# --- Cleanup Function ---
-cleanup() {
-    echo "--> Ensuring development state is restored..."
-    if [ -d "$FE_DIR" ]; then
-        # Remove whatever temporary npm state exists
-        rm -rf "$FE_DIR/node_modules"
-        
-        # Restore backups if they exist
-        [ -d "$FE_DIR/node_modules_dev_bak" ] && mv "$FE_DIR/node_modules_dev_bak" "$FE_DIR/node_modules"
-        [ -f "$FE_DIR/package-lock.json.dev_bak" ] && mv "$FE_DIR/package-lock.json.dev_bak" "$FE_DIR/package-lock.json"
-    fi
-}
+echo "### Starting Build for Login Portal: $PACKAGE_ROOT ###"
 
-# Register the trap to run on EXIT, INT (Ctrl+C), and TERM
-trap cleanup EXIT
-
-echo "### Starting Safe Build: $PACKAGE_ROOT ###"
-
-# 1. Protect the Development State
-if [ -d "$FE_DIR" ]; then
-    echo "--> Shelving development state..."
-    [ -d "$FE_DIR/node_modules" ] && mv "$FE_DIR/node_modules" "$FE_DIR/node_modules_dev_bak"
-    [ -f "$FE_DIR/package-lock.json" ] && cp "$FE_DIR/package-lock.json" "$FE_DIR/package-lock.json.dev_bak"
-    
-    # 2. Deterministic Install
-    echo "--> Running Deterministic npm install..."
-    (
-        verify_npm_reqs
-        cd "$FE_DIR" || exit 1
-        # Use 'npm ci' if you have a lockfile; it's faster and cleaner for builds
-        echo "Running 'npm install' in $FE_DIR..."
-        npm install 
-    )
-else
-    # Added a safety warning so you know if the path ever breaks again
-    echo "WARNING: Frontend directory not found at $FE_DIR"
-    echo "Skipping NPM dependency installation."
-fi
+# 2. Clean old build artifacts
+echo "--> Cleaning old build artifacts..."
+rm -rf "$PACKAGE_ROOT/dist" "$PACKAGE_ROOT/build" "$PACKAGE_ROOT"/*.egg-info
 
 # 3. Build the Python Wheel
 echo "--> Packaging Wheel..."
-# We use a subshell or temporary disable 'set -e' if we want custom error handling
-# But with 'set -e' at the top, the trap will catch a failure here automatically.
-rm -rf "$PACKAGE_ROOT/dist" "$PACKAGE_ROOT/build"
-
-# FIX 1: Explicitly tell Python where the project root is
 python3 -m build --wheel "$PACKAGE_ROOT"
 
-echo "### Build Successful. Monorepo integrity maintained. ###"
+echo "### Build Successful. Wheel ready in $PACKAGE_ROOT/dist/ ###"
