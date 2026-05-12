@@ -258,11 +258,46 @@ else
 fi
 # =================================================================
 
+# =================================================================
+# Provision Frontend Shared Data
+# =================================================================
 
-frontend_module_data_path=$(python -c "from importlib.resources import files; print(files('ticketweb_apps_reporting').joinpath('shared-data','init_data.json'))")
-echo "Front end module data path located at: $frontend_module_data_path"
-echo "Copying front end module data to data dir."
-cp $frontend_module_data_path $DATA_DIR
+frontend_module_data_path=$(python -c "from importlib.resources import files; print(files('ticketweb_apps_reporting').joinpath('shared-data'))")
+echo "Front end module shared-data directory located at: $frontend_module_data_path"
+
+# Enable dotglob so the '*' wildcard catches hidden files as well
+shopt -s dotglob
+
+if [ "$DEVEL_MODE" = "true" ]; then
+    echo "Development mode: Creating symlinks for front end module data in data dir..."
+    for item in "$frontend_module_data_path"/*; do
+        if [ -e "$item" ]; then
+            ln -sf "$item" "$DATA_DIR/"
+            echo "  -> Linked: $(basename "$item")"
+        fi
+    done
+else
+    echo "Production mode: Copying front end module data to data dir safely..."
+    for item in "$frontend_module_data_path"/*; do
+        if [ -e "$item" ]; then
+            base_name=$(basename "$item")
+            target_path="$DATA_DIR/$base_name"
+            
+            # Check if the file/folder already exists at the destination
+            if [ -e "$target_path" ]; then
+                echo "  -> Target exists: $base_name (Saving update as ${base_name}.new)"
+                cp -a "$item" "${target_path}.new"
+            else
+                echo "  -> Copied: $base_name"
+                cp -a "$item" "$target_path"
+            fi
+        fi
+    done
+fi
+
+# Revert dotglob to normal shell behavior
+shopt -u dotglob
+
 
 
 echo "Installation complete!"
