@@ -285,8 +285,15 @@ else
             
             # Check if the file/folder already exists at the destination
             if [ -e "$target_path" ]; then
-                echo "  -> Target exists: $base_name (Saving update as ${base_name}.new)"
-                cp -a "$item" "${target_path}.new"
+                # Recursively and quietly compare the items
+                if diff -rq "$item" "$target_path" > /dev/null 2>&1; then
+                    echo "  -> Unchanged: $base_name (Skipping)"
+                else
+                    echo "  -> Target differs: $base_name (Saving update as ${base_name}.new)"
+                    # Remove old .new file/folder if it exists to prevent 'cp -a' nesting errors
+                    rm -rf "${target_path}.new"
+                    cp -a "$item" "${target_path}.new"
+                fi
             else
                 echo "  -> Copied: $base_name"
                 cp -a "$item" "$target_path"
