@@ -367,7 +367,7 @@ class SubmitTicket():
 
         mail_enc = urllib.parse.quote(mail)
         rt_path= rt_path_base + "REST/2.0/"
-        receive = requests.get(rt_path + "user/" + mail_enc,headers=headers,verify=False)
+        receive = requests.get(rt_path + "user/" + mail_enc,headers=headers)
         current_user_name = None
         if receive.status_code == 200:
             current_user_name = mail_enc
@@ -399,8 +399,7 @@ class SubmitTicket():
             url = rt_path+"user/"+current_user_name
             receive = requests.put(url,
                                    headers=headers,
-                                   json=user_fields,
-                                   verify=False)
+                                   json=user_fields)
         
 
 
@@ -486,7 +485,7 @@ class SubmitTicket():
 
                 receive = requests.post(rt_path + "ticket",
                                         headers=headers,
-                                        data=mp_encoder, verify=False)
+                                        data=mp_encoder)
 
 
         if receive.status_code != 201:

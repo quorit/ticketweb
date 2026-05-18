@@ -47,7 +47,6 @@ function test_ok(response) {
          console.log("About to resolve response");
           resolve (response);
        }else{
-         console.log("bye son");
          console.log(response);
          console.log(response.status);
          var str = "Server returned " + response.status + " : " + response.statusText;
@@ -72,7 +71,6 @@ function extended_fetch(opts,authsystem_path,app_name){
    const url = window.location.origin + authsystem_path + "session/" + app_name;
    console.log(url);
    const result = fetch(url,opts).then(response => response,err=> new ConnectionError(err.message));
-   console.log ("sorry natalie 3");
    console.log(url);
    console.log(opts);
    console.log (result);

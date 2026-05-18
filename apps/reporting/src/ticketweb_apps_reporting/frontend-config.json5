@@ -8,7 +8,7 @@
    // In production mode,
    // vue_app_path_roots might look like this:
    // "vue_app_path_roots": {
-   //    "app": "/ticketweb/apps/ithelp/",
+   //    "app": "/ticketweb/apps/reporting/",
    //    "authsystem": "/ticketweb/authsystem-server/"
    // },
    // 'app' is a url root for the app. The url of the front end
