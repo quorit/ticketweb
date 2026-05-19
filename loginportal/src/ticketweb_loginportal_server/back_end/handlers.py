@@ -157,8 +157,11 @@ class LoginHandler ():
 
         try:
             # WARNING: This makes the connection insecure!
-            ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+            # ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
             #please try to fix this asap
+
+
+
             ldap_handle  = ldap.initialize(url)
 
 
