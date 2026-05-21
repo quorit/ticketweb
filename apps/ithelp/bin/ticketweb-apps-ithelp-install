@@ -157,7 +157,34 @@ else
 fi
 
 
+# ==============================================================================
+# Install Logrotate Configuration (Production Only)
+# ==============================================================================
 
+if [ "$DEVEL_MODE" = "false" ]; then
+    logrotate_file="/etc/logrotate.d/ticketweb-$BUILD_ID-apps-ithelp"
+    echo "Production mode: Installing logrotate configuration to $logrotate_file..."
+    
+    cat << EOF > "$logrotate_file"
+'/var/log/ticketweb/$BUILD_ID/apps/ithelp/*.log' {
+    su ticketweb_apps_ithelp ticketweb_apps_ithelp
+    create 0640 ticketweb_apps_ithelp ticketweb_apps_ithelp
+    daily
+    rotate 10
+    missingok
+    notifempty
+    compress
+    sharedscripts
+    postrotate
+        kill -USR1 \$(cat /run/ticketweb/$BUILD_ID/apps/ithelp/server.pid)
+    endscript
+}
+EOF
+    
+    # Ensure correct permissions for logrotate (must be owned by root)
+    chown root:root "$logrotate_file"
+    chmod 644 "$logrotate_file"
+fi
 
 
 # ==============================================================================

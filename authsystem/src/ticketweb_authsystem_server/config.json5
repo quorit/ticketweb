@@ -11,8 +11,8 @@
     // A standard session length is 10080 minutes, which is equivalent to 7 days.
     "session_length_mins": 10080,
 
-    // The "bind" field specifies the address and port that the server should bind to. The format is "address:port".
-    // For example, ":8001" means that the server will listen on all available network interfaces on port 8001.
+    // The "port" field specifies the address and port that the server should bind to.
+    // The server will only listen locally, and should be placed behind a reverse proxy such as Apache, which will handle incoming requests and forward them to the server.
     "port": "8001",
 
     // The "login_portals" field contains configuration for both a microsoft azure portal and a ticketweb development portal,
