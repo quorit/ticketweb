@@ -170,7 +170,7 @@ if [ "$DEVEL_MODE" = "false" ]; then
     echo "Production mode: Installing logrotate configuration to $logrotate_file..."
     
     cat << EOF > "$logrotate_file"
-'/var/log/ticketweb/$BUILD_ID/loginportal/*.log' {
+/var/log/ticketweb/$BUILD_ID/loginportal/*.log {
     su ticketweb_loginportal ticketweb_loginportal
     create 0640 ticketweb_loginportal ticketweb_loginportal
     daily
@@ -178,9 +178,10 @@ if [ "$DEVEL_MODE" = "false" ]; then
     missingok
     notifempty
     compress
+    delaycompress
     sharedscripts
     postrotate
-        kill -USR1 \$(cat /run/ticketweb/$BUILD_ID/loginportal/server.pid)
+        [ -f /run/ticketweb/$BUILD_ID/loginportal/server.pid ] && kill -USR1 \$(cat /run/ticketweb/$BUILD_ID/loginportal/server.pid) || true
     endscript
 }
 EOF
